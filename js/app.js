@@ -366,6 +366,18 @@ async function openStore(
     .textContent =
     `Seller ID: ${s.seller_id}`;
 
+  const topName = $("#topStoreName");
+  const topSeller = $("#topSeller");
+  if (topName) topName.textContent = s.name || "Loja";
+  if (topSeller) topSeller.textContent = `Seller ID · ${s.seller_id}`;
+
+  const topAvatar = $("#topAvatar");
+  if (topAvatar) {
+    topAvatar.innerHTML = s.logo_url
+      ? `<img src="${esc(s.logo_url)}" alt="">`
+      : "LO";
+  }
+
   $("#logo")
     .innerHTML =
     s.logo_url
@@ -548,11 +560,11 @@ function renderCombinedChart(
   }
 
   const W = 1000;
-  const H = 390;
+  const H = 420;
   const L = 58;
   const R = 72;
   const T = 30;
-  const B = 55;
+  const B = 68;
 
   const pw =
     W - L - R;
@@ -611,34 +623,50 @@ function renderCombinedChart(
     );
 
 
+  const clampY = y =>
+    Math.max(
+      T,
+      Math.min(
+        T + ph,
+        y
+      )
+    );
+
+
   const ySales = v =>
-    T +
-    ph -
-    (
-      Number(v || 0) /
-      salesMax
-    ) *
-      ph;
+    clampY(
+      T +
+      ph -
+      (
+        Number(v || 0) /
+        salesMax
+      ) *
+        ph
+    );
 
 
   const yCancel = v =>
-    T +
-    ph -
-    (
-      Number(v || 0) /
-      cancelMax
-    ) *
-      ph;
+    clampY(
+      T +
+      ph -
+      (
+        Number(v || 0) /
+        cancelMax
+      ) *
+        ph
+    );
 
 
   const yRevenue = v =>
-    T +
-    ph -
-    (
-      Number(v || 0) /
-      revenueMax
-    ) *
-      ph;
+    clampY(
+      T +
+      ph -
+      (
+        Number(v || 0) /
+        revenueMax
+      ) *
+        ph
+    );
 
 
   const path = (
@@ -806,9 +834,9 @@ function renderCombinedChart(
               />
 
               <rect
-                x="${xx - 18}"
+                x="${xx - 22}"
                 y="${T}"
-                width="36"
+                width="44"
                 height="${ph}"
                 class="hover-zone"
               />
@@ -831,6 +859,17 @@ function renderCombinedChart(
         aria-label="Vendas, faturamento e cancelamentos dos últimos 7 dias"
       >
 
+        <defs>
+          <clipPath id="chartPlotClip">
+            <rect
+              x="${L}"
+              y="${T}"
+              width="${pw}"
+              height="${ph}"
+            />
+          </clipPath>
+        </defs>
+
         ${grid}
 
         <line
@@ -841,22 +880,24 @@ function renderCombinedChart(
           class="chart-axis"
         />
 
-        <path
-          d="${salesPath}"
-          class="line sales-line"
-        />
+        <g clip-path="url(#chartPlotClip)">
+          <path
+            d="${salesPath}"
+            class="line sales-line"
+          />
 
-        <path
-          d="${revenuePath}"
-          class="line revenue-line"
-        />
+          <path
+            d="${revenuePath}"
+            class="line revenue-line"
+          />
 
-        <path
-          d="${cancelPath}"
-          class="line cancel-line"
-        />
+          <path
+            d="${cancelPath}"
+            class="line cancel-line"
+          />
 
-        ${points}
+          ${points}
+        </g>
 
         ${labels}
 
@@ -962,25 +1003,31 @@ function renderCombinedChart(
               "visible"
             );
 
-            const px =
-              (
-                i /
-                (
-                  days.length -
-                  1 ||
-                  1
+            const ratio =
+              days.length <= 1
+                ? 0.5
+                : i / (days.length - 1);
+
+            const chartWidth =
+              container.clientWidth;
+
+            const tooltipWidth = 170;
+            const rawLeft =
+              ratio * chartWidth;
+
+            const safeLeft =
+              Math.max(
+                tooltipWidth / 2 + 8,
+                Math.min(
+                  chartWidth - tooltipWidth / 2 - 8,
+                  rawLeft
                 )
-              ) *
-              100;
+              );
 
             tooltip.style.left =
-              `${Math.min(
-                82,
-                Math.max(
-                  8,
-                  px
-                )
-              )}%`;
+              `${safeLeft}px`;
+            tooltip.style.top =
+              "10px";
           }
         );
 
@@ -1600,6 +1647,29 @@ function renderItems() {
         p.querySelector(
           "em"
         );
+
+      const permalink =
+        state.items[
+          +p.dataset.index
+        ]?.permalink;
+
+      if (permalink) {
+        p.title = "Abrir anúncio no Mercado Livre";
+        p.onclick = event => {
+          if (
+            event.target.closest(".prev") ||
+            event.target.closest(".next")
+          ) {
+            return;
+          }
+
+          window.open(
+            permalink,
+            "_blank",
+            "noopener"
+          );
+        };
+      }
 
 
       const update = () => {
