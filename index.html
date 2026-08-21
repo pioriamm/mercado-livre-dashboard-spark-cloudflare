@@ -1,0 +1,20 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mercado Livre Dashboard</title><link rel="stylesheet" href="css/styles.css"></head><body>
+<section id="login" class="screen active"><div class="login"><div class="mark">ML</div><small>DASHBOARD</small><h1>Mercado Livre</h1><p>Digite o código de acesso.</p><form id="loginForm" novalidate><input id="code" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••" autofocus><button type="submit">Entrar</button><b id="loginError"></b></form></div></section>
+<section id="stores" class="screen"><header><div><small>PAINEL</small><h2>Lojas cadastradas</h2></div><button id="logout" class="ghost">Sair</button></header><main><div id="storesGrid" class="stores"></div></main></section>
+<section id="items" class="screen"><header class="main-header"><div><button id="back" class="ghost">← Lojas</button><div class="storeHead"><div id="logo" class="logo">ML</div><div><small>PAINEL DA LOJA</small><h2 id="storeName">Loja</h2><span id="seller"></span></div></div></div><div class="tools"><select id="order"><option value="sold_quantity_desc">Mais vendidos</option><option value="sold_quantity_asc">Menos vendidos</option><option value="price_asc">Menor preço</option><option value="price_desc">Maior preço</option><option value="available_quantity_asc">Menor estoque</option><option value="available_quantity_desc">Maior estoque</option><option value="last_updated_desc">Atualizados recentemente</option><option value="last_updated_asc">Atualizados há mais tempo</option></select><select id="limit"><option value="12">12 por página</option><option value="24" selected>24 por página</option><option value="48">48 por página</option><option value="50">50 por página</option></select><button id="refresh" class="ghost">Atualizar</button></div></header>
+<main><section class="dashboard"><div class="section-title"><div><small>DESEMPENHO</small><h2>Resumo dos últimos 7 dias</h2></div><span id="salesPeriod" class="muted"></span></div><div id="summaryCards" class="summary-cards"><div class="stat-card skeleton"></div><div class="stat-card skeleton"></div><div class="stat-card skeleton"></div><div class="stat-card skeleton"></div></div>
+<article class="chart-card combined-chart-card">
+  <div class="chart-header">
+    <div><small>DESEMPENHO</small><h3>Vendas, faturamento e cancelamentos — últimos 7 dias</h3></div>
+    <div class="chart-totals"><strong id="chartSalesTotal">—</strong><strong id="chartRevenueTotal">—</strong><strong id="chartCancelledTotal">—</strong></div>
+  </div>
+  <div class="chart-legend">
+    <span><i class="legend-sales"></i>Vendas</span>
+    <span><i class="legend-revenue"></i>Faturamento</span>
+    <span><i class="legend-cancel"></i>Cancelamentos</span>
+  </div>
+  <div id="combinedChart" class="line-chart"></div>
+</article>
+<article class="status-card"><div><small>STATUS DOS PEDIDOS</small><h3>Situação das vendas</h3></div><div id="statusBars" class="status-bars"></div></article></section>
+<section class="announcements"><div class="section-title"><div><small>CATÁLOGO</small><h2>Anúncios da loja</h2></div><div id="summary" class="muted"></div></div><div id="loading" class="loading">Carregando...</div><div id="grid" class="grid"></div><div id="pages" class="pages"></div></section></main></section>
+<div id="toast" class="toast"></div><script src="js/config.js"></script><script src="js/api.js"></script><script src="js/app.js"></script></body></html>

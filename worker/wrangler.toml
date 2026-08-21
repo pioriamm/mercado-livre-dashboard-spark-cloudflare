@@ -1,0 +1,8 @@
+name = "mercado-livre-dashboard-api"
+main = "src/index.js"
+compatibility_date = "2026-08-20"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "ML_STORES"
+id = "fc6f08a9cda44eb8983ebacbfd8be257"
