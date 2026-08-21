@@ -136,10 +136,10 @@ const API = {
    ADICIONAR LOJA
 ========================================================= */
 
-async function addStore() {
-  const name = prompt(
-    "Nome da loja:"
-  );
+function addStore() {
+  window.location.href =
+    `${API_BASE}/api/oauth/start`;
+}
 
   if (!name || !name.trim()) {
     return;
@@ -1423,12 +1423,51 @@ function initLogin() {
   };
 }
 
+function handleOAuthResult() {
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const success =
+    params.get("oauth");
+
+  const error =
+    params.get("oauth_error");
+
+  if (success === "success") {
+    toast(
+      "Loja conectada com sucesso."
+    );
+
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    );
+
+    return;
+  }
+
+  if (error) {
+    toast(
+      `Erro ao conectar loja: ${error}`
+    );
+
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    );
+  }
+}
 /* =========================================================
    INICIALIZAÇÃO
 ========================================================= */
 
 function initApp() {
   initLogin();
+  handleOAuthResult();
 
   $("#back").onclick = () =>
     screen("#stores");
