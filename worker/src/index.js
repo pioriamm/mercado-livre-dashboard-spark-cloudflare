@@ -210,7 +210,6 @@ async function listStores(
    * Primeiro garante a migração
    * da loja antiga.
    */
-
   if (env.ML_SELLER_ID) {
 
     try {
@@ -221,6 +220,7 @@ async function listStores(
       );
 
     } catch {
+
       /*
        * Se a migração falhar,
        * continuamos para listar
@@ -239,8 +239,10 @@ async function listStores(
 
     const result =
       await env.ML_STORES.list({
+
         prefix:
           "store:",
+
         cursor
       });
 
@@ -261,7 +263,68 @@ async function listStores(
         store.seller_id
       ) {
 
+        /*
+         * Se ainda não temos a logo,
+         * consulta o perfil do vendedor
+         * no Mercado Livre.
+         */
+        if (
+          !store.logo_url &&
+          store.access_token
+        ) {
+
+          try {
+
+            const user =
+              await ml(
+                `/users/${encodeURIComponent(
+                  store.seller_id
+                )}`,
+                store.access_token
+              );
+
+
+            /*
+             * O Mercado Livre pode retornar
+             * a logo no campo "logo".
+             */
+            if (
+              user &&
+              user.logo
+            ) {
+
+              store.logo_url =
+                user.logo;
+
+
+              /*
+               * Salva a logo no KV para
+               * não precisar consultar
+               * novamente nas próximas chamadas.
+               */
+              await saveStore(
+                env,
+                store
+              );
+            }
+
+          } catch (error) {
+
+            /*
+             * Falha na consulta da logo
+             * não deve impedir que a loja
+             * apareça no dashboard.
+             */
+            console.error(
+              `Erro ao buscar logo da loja ${store.seller_id}:`,
+              error
+            );
+          }
+        }
+
+
         stores.push({
+
           id:
             store.seller_id,
 
@@ -294,7 +357,6 @@ async function listStores(
   /*
    * Remove duplicados por seller_id.
    */
-
   const unique =
     new Map();
 
@@ -1515,8 +1577,9 @@ async function oauthCallback(
       `Loja ${sellerId}`,
 
     logo_url:
-      existing?.logo_url ||
-      "",
+    user.logo ||
+    existing?.logo_url ||
+    "",
 
     refresh_token:
       token.refresh_token ||
