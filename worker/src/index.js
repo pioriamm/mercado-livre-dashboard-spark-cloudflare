@@ -64,16 +64,6 @@ async function getStore(env, sellerId) {
     return saved;
   }
 
-  /*
-   * Migração da loja antiga.
-   *
-   * Ela já existia usando:
-   * ML_SELLER_ID
-   * ML_REFRESH_TOKEN
-   * ML_STORE_NAME
-   * ML_STORE_LOGO_URL
-   */
-
   const configuredSellerId = env.ML_SELLER_ID;
 
   if (!configuredSellerId || String(configuredSellerId) !== id) {
@@ -111,26 +101,12 @@ async function saveStore(env, store) {
   return store;
 }
 
-/*
- * Lista todas as lojas armazenadas no KV.
- *
- * Também garante que a loja antiga seja migrada.
- */
-
 async function listStores(env) {
-  /*
-   * Primeiro garante a migração
-   * da loja antiga.
-   */
   if (env.ML_SELLER_ID) {
     try {
       await getStore(env, env.ML_SELLER_ID);
     } catch {
-      /*
-       * Se a migração falhar,
-       * continuamos para listar
-       * o que já existe no KV.
-       */
+      // Continua listando as lojas existentes no KV.
     }
   }
 
@@ -141,7 +117,6 @@ async function listStores(env) {
   do {
     const result = await env.ML_STORES.list({
       prefix: "store:",
-
       cursor,
     });
 
@@ -149,11 +124,6 @@ async function listStores(env) {
       const store = await env.ML_STORES.get(key.name, "json");
 
       if (store && store.seller_id) {
-        /*
-         * Se ainda não temos a logo,
-         * consulta o perfil do vendedor
-         * no Mercado Livre.
-         */
         if (!store.logo_url && store.access_token) {
           try {
             const user = await ml(
@@ -161,26 +131,12 @@ async function listStores(env) {
               store.access_token,
             );
 
-            /*
-             * O Mercado Livre pode retornar
-             * a logo no campo "logo".
-             */
             if (user && user.logo) {
               store.logo_url = user.logo;
 
-              /*
-               * Salva a logo no KV para
-               * não precisar consultar
-               * novamente nas próximas chamadas.
-               */
               await saveStore(env, store);
             }
           } catch (error) {
-            /*
-             * Falha na consulta da logo
-             * não deve impedir que a loja
-             * apareça no dashboard.
-             */
             console.error(
               `Erro ao buscar logo da loja ${store.seller_id}:`,
               error,
@@ -205,9 +161,6 @@ async function listStores(env) {
     cursor = result.list_complete ? undefined : result.cursor;
   } while (cursor);
 
-  /*
-   * Remove duplicados por seller_id.
-   */
   const unique = new Map();
 
   for (const store of stores) {
@@ -225,11 +178,6 @@ async function getAccessToken(env, sellerId) {
   const store = await getStore(env, sellerId);
 
   const now = Date.now();
-
-  /*
-   * Reutiliza o access token
-   * enquanto ainda estiver válido.
-   */
 
   if (
     store.access_token &&
@@ -274,11 +222,6 @@ async function getAccessToken(env, sellerId) {
   store.access_token = data.access_token;
 
   store.expires_at = Date.now() + Number(data.expires_in || 21600) * 1000;
-
-  /*
-   * O Mercado Livre pode
-   * fornecer um novo refresh token.
-   */
 
   if (data.refresh_token) {
     store.refresh_token = data.refresh_token;
@@ -436,7 +379,6 @@ function orderRevenue(order) {
     return total + Number(item.unit_price || 0) * Number(item.quantity || 0);
   }, 0);
 }
-
 /* =========================================================
    PEDIDOS
 ========================================================= */
@@ -459,11 +401,6 @@ async function getOrdersSummary(sellerId, accessToken) {
   const limit = 50;
 
   let total = null;
-
-  /*
-   * Busca todas as páginas
-   * de pedidos.
-   */
 
   do {
     const searchParams = new URLSearchParams({
@@ -518,12 +455,13 @@ async function getOrdersSummary(sellerId, accessToken) {
     other: 0,
   };
 
-  /*
-   * Busca shipments em lotes.
-   */
-
   const enrichedOrders = [];
 
+  /*
+   * Mantemos as chamadas de shipment
+   * em pequenos lotes para evitar
+   * excesso de subrequests.
+   */
   for (let i = 0; i < allOrders.length; i += 5) {
     const batch = allOrders.slice(i, i + 5);
 
@@ -539,7 +477,9 @@ async function getOrdersSummary(sellerId, accessToken) {
 
         return {
           order,
+
           shipment,
+
           shippingStatus,
         };
       }),
@@ -547,10 +487,6 @@ async function getOrdersSummary(sellerId, accessToken) {
 
     enrichedOrders.push(...enriched);
   }
-
-  /*
-   * Processa os pedidos.
-   */
 
   for (const entry of enrichedOrders) {
     const order = entry.order;
@@ -572,17 +508,9 @@ async function getOrdersSummary(sellerId, accessToken) {
       summary.revenue += orderRevenue(order);
     }
 
-    /*
-     * Cancelamentos.
-     */
-
     if (order.status === "cancelled" || order.status === "pending_cancel") {
       summary.cancelled += 1;
     }
-
-    /*
-     * Situação do envio.
-     */
 
     if (shippingStatus === "pending_shipping") {
       summary.pending_shipping += 1;
@@ -593,10 +521,6 @@ async function getOrdersSummary(sellerId, accessToken) {
     } else if (shippingStatus === "other") {
       summary.other += 1;
     }
-
-    /*
-     * Gráfico.
-     */
 
     const date = localDateKey(order.date_closed || order.date_created);
 
@@ -649,16 +573,663 @@ async function getOrdersSummary(sellerId, accessToken) {
 }
 
 /* =========================================================
+   FUNÇÕES DO RELATÓRIO
+========================================================= */
+
+function reportDate(value, endOfDay = false) {
+  const valueText = String(value || "").trim();
+
+  if (!valueText) {
+    return null;
+  }
+
+  /*
+   * A tela envia YYYY-MM-DD.
+   *
+   * Usamos o horário de Brasília
+   * explicitamente para que:
+   *
+   * 2026-08-31
+   *
+   * represente o dia inteiro.
+   */
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valueText)) {
+    return new Date(
+      `${valueText}T${endOfDay ? "23:59:59.999" : "00:00:00.000"}-03:00`,
+    );
+  }
+
+  const date = new Date(valueText);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function reportItemId(orderItem) {
+  return String(orderItem?.item?.id || orderItem?.item_id || "").trim();
+}
+
+function reportItemTitle(orderItem) {
+  return orderItem?.item?.title || orderItem?.title || "Anúncio sem título";
+}
+
+function reportItemUnitPrice(orderItem) {
+  const value = Number(
+    orderItem?.unit_price ?? orderItem?.full_unit_price ?? 0,
+  );
+
+  return Number.isFinite(value) ? value : 0;
+}
+
+function reportItemQuantity(orderItem) {
+  const value = Number(orderItem?.quantity || 0);
+
+  return Number.isFinite(value) ? value : 0;
+}
+
+function reportIsCancelled(order) {
+  return order?.status === "cancelled" || order?.status === "pending_cancel";
+}
+
+function reportIsPaid(order) {
+  if (reportIsCancelled(order)) {
+    return false;
+  }
+
+  if (order?.status === "paid" || order?.status === "partially_paid") {
+    return true;
+  }
+
+  return (order?.payments || []).some(
+    (payment) => payment?.status === "approved",
+  );
+}
+
+/* =========================================================
+   BUSCAR PEDIDOS DO PERÍODO
+========================================================= */
+
+async function fetchReportOrders(
+  sellerId,
+  accessToken,
+  from,
+  to,
+  offset = 0,
+  limit = 50,
+) {
+  /*
+   * IMPORTANTE:
+   *
+   * O Worker não deve buscar todas as páginas
+   * de pedidos em uma única execução.
+   *
+   * Cada chamada ao /orders/search é uma
+   * subrequest do Cloudflare.
+   *
+   * Por isso buscamos somente UMA página.
+   *
+   * A próxima página será solicitada pelo frontend
+   * usando o parâmetro offset.
+   */
+
+  const safeOffset = Math.max(0, Number(offset) || 0);
+
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 50));
+
+  const params = new URLSearchParams({
+    seller: sellerId,
+
+    "order.date_created.from": from.toISOString(),
+
+    "order.date_created.to": to.toISOString(),
+
+    sort: "date_desc",
+
+    limit: String(safeLimit),
+
+    offset: String(safeOffset),
+  });
+
+  const result = await ml(`/orders/search?${params.toString()}`, accessToken);
+
+  const orders = Array.isArray(result.results) ? result.results : [];
+
+  const total = Number(result?.paging?.total || 0);
+
+  const nextOffset = safeOffset + orders.length;
+
+  return {
+    orders,
+
+    total,
+
+    paging: {
+      offset: safeOffset,
+
+      limit: safeLimit,
+
+      total,
+
+      returned: orders.length,
+
+      next_offset: nextOffset,
+
+      has_more: nextOffset < total,
+    },
+  };
+}
+
+/* =========================================================
+   BUSCAR IDS DOS ANÚNCIOS
+========================================================= */
+
+async function fetchAllSellerItemIds(sellerId, accessToken) {
+  const ids = [];
+
+  let scrollId = null;
+
+  /*
+   * IMPORTANTE:
+   *
+   * Aqui NÃO buscamos /items.
+   *
+   * Pegamos somente os IDs.
+   *
+   * Isso reduz bastante o número
+   * de subrequests.
+   */
+  while (true) {
+    const params = new URLSearchParams({
+      search_type: "scan",
+
+      limit: "100",
+    });
+
+    if (scrollId) {
+      params.set("scroll_id", scrollId);
+    }
+
+    const result = await ml(
+      `/users/${encodeURIComponent(
+        sellerId,
+      )}/items/search?${params.toString()}`,
+      accessToken,
+    );
+
+    const page = Array.isArray(result.results) ? result.results : [];
+
+    ids.push(...page);
+
+    const nextScroll = result.scroll_id || null;
+
+    if (page.length === 0 || !nextScroll || nextScroll === scrollId) {
+      break;
+    }
+
+    scrollId = nextScroll;
+  }
+
+  return [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))];
+}
+
+/* =========================================================
+   DETALHES DOS PRODUTOS VENDIDOS
+========================================================= */
+
+async function fetchItemsByIds(itemIds, accessToken) {
+  const items = [];
+
+  /*
+   * Só recebe os IDs dos produtos
+   * que realmente apareceram nas vendas.
+   *
+   * NÃO enviar todos os anúncios
+   * da loja aqui.
+   */
+  for (let i = 0; i < itemIds.length; i += 20) {
+    const batch = itemIds.slice(i, i + 20);
+
+    const result = await ml(
+      `/items?ids=${batch.map((id) => encodeURIComponent(id)).join(",")}`,
+      accessToken,
+    );
+
+    if (!Array.isArray(result)) {
+      continue;
+    }
+
+    for (const entry of result) {
+      if (entry?.code !== 200 || !entry.body) {
+        continue;
+      }
+
+      items.push(entry.body);
+    }
+  }
+
+  return items;
+}
+/* =========================================================
+   RELATÓRIO DE VENDAS
+========================================================= */
+
+function reportMonthKey(date) {
+  const d = new Date(date);
+
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
+
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(
+    2,
+    "0",
+  )}`;
+}
+
+function reportMonthLabel(key) {
+  if (!key) {
+    return "";
+  }
+
+  const [year, month] = key.split("-");
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "short",
+
+    year: "numeric",
+
+    timeZone: "UTC",
+  }).format(new Date(`${year}-${month}-01T12:00:00.000Z`));
+}
+
+/*
+ * Calcula o relatório.
+ *
+ * IMPORTANTE:
+ *
+ * Não buscamos detalhes de todos os
+ * anúncios da loja.
+ *
+ * Primeiro analisamos os pedidos.
+ *
+ * Só depois buscamos detalhes dos
+ * anúncios que realmente tiveram venda.
+ */
+async function getSalesReport(
+  sellerId,
+  accessToken,
+  from,
+  to,
+  offset = 0,
+  limit = 50,
+) {
+  const { orders, total, paging } = await fetchReportOrders(
+    sellerId,
+    accessToken,
+    from,
+    to,
+    offset,
+    limit,
+  );
+
+  const productMap = new Map();
+
+  const monthlyMap = new Map();
+
+  let paidOrders = 0;
+  let cancelledOrders = 0;
+  let unitsSold = 0;
+  let revenue = 0;
+
+  /*
+   * =======================================================
+   * PROCESSA OS PEDIDOS
+   * =======================================================
+   */
+
+  for (const order of orders) {
+    if (reportIsCancelled(order)) {
+      cancelledOrders += 1;
+    }
+
+    if (!reportIsPaid(order)) {
+      continue;
+    }
+
+    paidOrders += 1;
+
+    const orderTotal = Number(order.total_amount);
+
+    /*
+     * Receita do pedido.
+     */
+    if (Number.isFinite(orderTotal)) {
+      revenue += orderTotal;
+    }
+
+    /*
+     * =====================================================
+     * AGRUPAMENTO MENSAL
+     * =====================================================
+     */
+
+    const month = reportMonthKey(order.date_created);
+
+    if (month) {
+      if (!monthlyMap.has(month)) {
+        monthlyMap.set(month, {
+          month,
+
+          label: reportMonthLabel(month),
+
+          sales: 0,
+
+          units: 0,
+
+          revenue: 0,
+        });
+      }
+
+      const monthly = monthlyMap.get(month);
+
+      monthly.sales += 1;
+
+      if (Number.isFinite(orderTotal)) {
+        monthly.revenue += orderTotal;
+      }
+    }
+
+    /*
+     * =====================================================
+     * ITENS DO PEDIDO
+     * =====================================================
+     */
+
+    for (const orderItem of order.order_items || []) {
+      const itemId = reportItemId(orderItem);
+
+      if (!itemId) {
+        continue;
+      }
+
+      const quantity = reportItemQuantity(orderItem);
+
+      const unitPrice = reportItemUnitPrice(orderItem);
+
+      const itemRevenue = quantity * unitPrice;
+
+      unitsSold += quantity;
+
+      /*
+       * Cria o produto somente uma vez.
+       */
+      if (!productMap.has(itemId)) {
+        productMap.set(itemId, {
+          item_id: itemId,
+
+          title: reportItemTitle(orderItem),
+
+          sold_quantity: 0,
+
+          revenue: 0,
+
+          orders: 0,
+
+          /*
+           * Esses dados podem não estar
+           * disponíveis em order_items.
+           *
+           * Por isso ficam vazios.
+           */
+          price: unitPrice,
+
+          permalink: "",
+
+          thumbnail: "",
+
+          pictures: [],
+
+          available_quantity: 0,
+
+          sold_quantity_total: 0,
+
+          status: "",
+        });
+      }
+
+      const product = productMap.get(itemId);
+
+      product.sold_quantity += quantity;
+
+      product.revenue += itemRevenue;
+
+      product.orders += 1;
+
+      /*
+       * Mantém o preço mais recente
+       * encontrado no pedido.
+       */
+      if (unitPrice > 0) {
+        product.price = unitPrice;
+      }
+
+      /*
+       * Se o pedido não tiver total_amount,
+       * usamos os itens para calcular
+       * a receita mensal.
+       */
+      if (month) {
+        const monthly = monthlyMap.get(month);
+
+        monthly.units += quantity;
+
+        if (!Number.isFinite(orderTotal)) {
+          monthly.revenue += itemRevenue;
+        }
+      }
+    }
+  }
+
+  /*
+   * =======================================================
+   * NÃO BUSCAR /items AQUI
+   * =======================================================
+   *
+   * Antes fazíamos:
+   *
+   *   /items?id1,id2,id3...
+   *
+   * Isso adicionava subrequests ao Worker.
+   *
+   * Agora o relatório utiliza diretamente
+   * os dados existentes em order_items.
+   *
+   * Isso é suficiente para:
+   *
+   * - Mais vendidos
+   * - Menos vendidos
+   * - Maior faturamento
+   * - Menor faturamento
+   * - Quantidade vendida
+   * - Faturamento
+   * - Vendas mensais
+   */
+
+  const soldItemIds = Array.from(productMap.keys());
+
+  /*
+   * =======================================================
+   * PRODUTOS
+   * =======================================================
+   */
+
+  const products = Array.from(productMap.values());
+
+  for (const product of products) {
+    product.revenue = Number(product.revenue.toFixed(2));
+  }
+
+  /*
+   * =======================================================
+   * VALORES MENSAIS
+   * =======================================================
+   */
+
+  for (const month of monthlyMap.values()) {
+    month.revenue = Number(month.revenue.toFixed(2));
+  }
+
+  /*
+   * =======================================================
+   * ORDENAÇÕES
+   * =======================================================
+   */
+
+  const sortDesc = (a, b) => {
+    if (b.sold_quantity !== a.sold_quantity) {
+      return b.sold_quantity - a.sold_quantity;
+    }
+
+    return b.revenue - a.revenue;
+  };
+
+  const sortAsc = (a, b) => {
+    if (a.sold_quantity !== b.sold_quantity) {
+      return a.sold_quantity - b.sold_quantity;
+    }
+
+    return a.revenue - b.revenue;
+  };
+
+  const byRevenueDesc = (a, b) =>
+    b.revenue - a.revenue || b.sold_quantity - a.sold_quantity;
+
+  const byRevenueAsc = (a, b) =>
+    a.revenue - b.revenue || a.sold_quantity - b.sold_quantity;
+
+  /*
+   * =======================================================
+   * MAIS / MENOS VENDIDOS
+   * =======================================================
+   */
+
+  const mostSold = [...products].sort(sortDesc).slice(0, 20);
+
+  const leastSold = [...products].sort(sortAsc).slice(0, 20);
+
+  /*
+   * =======================================================
+   * MAIOR / MENOR FATURAMENTO
+   * =======================================================
+   */
+
+  const highestRevenue = [...products].sort(byRevenueDesc).slice(0, 20);
+
+  const lowestRevenue = [...products].sort(byRevenueAsc).slice(0, 20);
+
+  /*
+   * =======================================================
+   * VENDAS POR MÊS
+   * =======================================================
+   */
+
+  const monthly = Array.from(monthlyMap.values()).sort((a, b) =>
+    a.month.localeCompare(b.month),
+  );
+
+  /*
+   * =======================================================
+   * RETORNO
+   * =======================================================
+   */
+
+  return {
+    seller_id: sellerId,
+
+    period: {
+      from: from.toISOString(),
+
+      to: to.toISOString(),
+    },
+
+    summary: {
+      orders: paidOrders,
+
+      sales: paidOrders,
+
+      units_sold: unitsSold,
+
+      revenue: Number(revenue.toFixed(2)),
+
+      cancelled: cancelledOrders,
+
+      /*
+       * Aqui temos somente os produtos
+       * que tiveram venda no período.
+       */
+      items_with_sales: products.length,
+
+      /*
+       * Não calculamos estes dois campos
+       * aqui porque isso exigiria percorrer
+       * todos os anúncios da loja.
+       *
+       * Será feito posteriormente através
+       * de uma rota paginada específica.
+       */
+      items_without_sales: null,
+
+      items_total: null,
+
+      orders_found: orders.length,
+
+      orders_total: total,
+
+      paging: {
+        offset: paging.offset,
+
+        limit: paging.limit,
+
+        total: paging.total,
+
+        returned: paging.returned,
+
+        next_offset: paging.next_offset,
+
+        has_more: paging.has_more,
+      },
+    },
+
+    monthly,
+
+    most_sold: mostSold,
+
+    least_sold: leastSold,
+
+    highest_revenue: highestRevenue,
+
+    lowest_revenue: lowestRevenue,
+
+    /*
+     * Sem vendas será implementado
+     * em endpoint separado.
+     */
+    no_sales: {
+      total: null,
+
+      item_ids: [],
+    },
+
+    no_sales_total: null,
+    products: products,
+    items_total: null,
+  };
+}
+/* =========================================================
    OAUTH START
 ========================================================= */
 
 async function oauthStart(env) {
   const clientId = reqenv(env, "ML_CLIENT_ID");
-
-  /*
-   * Mantemos state para
-   * proteger o fluxo OAuth.
-   */
 
   const state = crypto.randomUUID();
 
@@ -709,13 +1280,6 @@ async function oauthCallback(request, env) {
     return Response.redirect(`${FRONTEND_URL}?oauth_error=no_code`, 302);
   }
 
-  /*
-   * O state é recomendado.
-   *
-   * Se o Mercado Livre não retornar
-   * o state, não continuamos o fluxo.
-   */
-
   if (!state) {
     return Response.redirect(`${FRONTEND_URL}?oauth_error=no_state`, 302);
   }
@@ -728,16 +1292,7 @@ async function oauthCallback(request, env) {
     return Response.redirect(`${FRONTEND_URL}?oauth_error=invalid_state`, 302);
   }
 
-  /*
-   * State de uso único.
-   */
-
   await env.ML_STORES.delete(stateKey);
-
-  /*
-   * Troca authorization code
-   * por access/refresh token.
-   */
 
   const form = new URLSearchParams({
     grant_type: "authorization_code",
@@ -774,21 +1329,11 @@ async function oauthCallback(request, env) {
     );
   }
 
-  /*
-   * user_id retornado pelo OAuth
-   * é o seller_id da loja.
-   */
-
   const sellerId = String(token.user_id || "").trim();
 
   if (!sellerId) {
     return Response.redirect(`${FRONTEND_URL}?oauth_error=no_user_id`, 302);
   }
-
-  /*
-   * Busca os dados públicos
-   * da conta para obter o nome.
-   */
 
   let user = {};
 
@@ -829,10 +1374,6 @@ async function oauthCallback(request, env) {
 
   await saveStore(env, store);
 
-  /*
-   * Retorna ao GitHub Pages.
-   */
-
   return Response.redirect(`${FRONTEND_URL}?oauth=success`, 302);
 }
 
@@ -868,11 +1409,6 @@ async function createStore(env, data) {
   if (existing) {
     throw new Error("Esta loja já está cadastrada.");
   }
-
-  /*
-   * Valida o refresh token
-   * antes de salvar.
-   */
 
   const form = new URLSearchParams({
     grant_type: "refresh_token",
@@ -959,7 +1495,7 @@ export default {
       }
 
       /* =====================================================
-         LISTA DE LOJAS
+         LISTAR LOJAS
       ===================================================== */
 
       if (url.pathname === "/api/stores" && request.method === "GET") {
@@ -971,11 +1507,7 @@ export default {
       }
 
       /* =====================================================
-         CADASTRO MANUAL
-         
-         Mantido apenas por compatibilidade.
-         O frontend não deve mais usar essa rota
-         para adicionar lojas.
+         CADASTRAR LOJA
       ===================================================== */
 
       if (url.pathname === "/api/stores" && request.method === "POST") {
@@ -1010,12 +1542,6 @@ export default {
 
       if (itemsMatch && request.method === "GET") {
         const sellerId = decodeURIComponent(itemsMatch[1]);
-
-        /*
-         * Confirma que a loja existe.
-         */
-
-        await getStore(env, sellerId);
 
         const order = url.searchParams.get("order") || "sold_quantity_desc";
 
@@ -1057,10 +1583,9 @@ export default {
         const items = [];
 
         /*
-         * Busca detalhes dos anúncios
-         * em lotes de 5.
+         * Mantém o comportamento
+         * atual da tela de anúncios.
          */
-
         for (let i = 0; i < ids.length; i += 5) {
           const batch = ids.slice(i, i + 5);
 
@@ -1093,7 +1618,7 @@ export default {
       }
 
       /* =====================================================
-         VENDAS / PEDIDOS
+         PEDIDOS
       ===================================================== */
 
       const ordersMatch = url.pathname.match(
@@ -1110,6 +1635,92 @@ export default {
         const summary = await getOrdersSummary(sellerId, accessToken);
 
         return out(summary);
+      }
+
+      /* =====================================================
+         RELATÓRIO DE VENDAS
+      ===================================================== */
+
+      const reportsMatch = url.pathname.match(
+        /^\/api\/stores\/([^/]+)\/reports\/sales$/,
+      );
+
+      if (reportsMatch && request.method === "GET") {
+        const sellerId = decodeURIComponent(reportsMatch[1]);
+
+        await getStore(env, sellerId);
+
+        /*
+         * As datas vêm da tela.
+         *
+         * Exemplo:
+         *
+         * ?from=2026-01-01
+         * &to=2026-08-31
+         */
+
+        const fromValue = url.searchParams.get("from");
+
+        const toValue = url.searchParams.get("to");
+
+        const from = reportDate(fromValue, false);
+
+        const to = reportDate(toValue, true);
+
+        if (!from || !to) {
+          return out(
+            {
+              error: "Informe from e to no formato YYYY-MM-DD.",
+            },
+            400,
+          );
+        }
+
+        if (from > to) {
+          return out(
+            {
+              error: "A data inicial não pode ser maior que a data final.",
+            },
+            400,
+          );
+        }
+
+        /*
+         * Limite de segurança:
+         * relatório máximo de 12 meses.
+         */
+        const maxFrom = new Date(to);
+
+        maxFrom.setUTCFullYear(maxFrom.getUTCFullYear() - 1);
+
+        if (from < maxFrom) {
+          return out(
+            {
+              error: "O período máximo do relatório é de 12 meses.",
+            },
+            400,
+          );
+        }
+
+        const accessToken = await getAccessToken(env, sellerId);
+
+        const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
+        const limit = Math.min(
+          50,
+          Math.max(1, Number(url.searchParams.get("limit") || 50)),
+        );
+
+        const report = await getSalesReport(
+          sellerId,
+          accessToken,
+          from,
+          to,
+          offset,
+          limit,
+        );
+
+        return out(report);
       }
 
       /* =====================================================

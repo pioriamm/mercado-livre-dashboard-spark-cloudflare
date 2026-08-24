@@ -1,185 +1,893 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Mercado Livre • Dashboard</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
 
-<section id="login" class="screen active">
-  <div class="login-shell">
-    <div class="login-card">
-      <div class="login-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 10v10h16V10"/>
-          <path d="M3 10l2-6h14l2 6"/>
-          <path d="M3 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3"/>
-        </svg>
-      </div>
-      <span class="eyebrow">DASHBOARD</span>
-      <h1>Mercado Livre</h1>
-      <p>Gerencie suas lojas e acompanhe seus anúncios.</p>
+  <!-- =========================================================
+     LOGIN
+========================================================= -->
 
-      <form id="loginForm" novalidate>
-        <label for="code">Código de acesso</label>
-        <input id="code" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4"
-               autocomplete="off" placeholder="••••" autofocus>
-        <button type="submit" class="primary-button">Entrar</button>
-        <b id="loginError" class="form-error"></b>
-      </form>
-    </div>
-  </div>
-</section>
+  <section id="login" class="screen active">
 
-<section id="stores" class="screen">
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 10v10h16V10"/>
-          <path d="M3 10l2-6h14l2 6"/>
-          <path d="M3 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3-3 3 3 3 1.7 3 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3"/>
-        </svg>
-      </div>
-      <span>Mercado Livre Dashboard</span>
-    </div>
-    <button id="logout" class="ghost">Sair</button>
-  </header>
+    <div class="login-shell">
 
-  <main class="page-main">
-    <div class="page-heading">
-      <div>
-        <span class="eyebrow">PAINEL</span>
-        <h1>Lojas cadastradas</h1>
-        <p>Selecione uma loja para acompanhar seu desempenho.</p>
-      </div>
-    </div>
-    <div id="storesGrid" class="stores"></div>
-  </main>
-</section>
+      <div class="login-card">
 
-<section id="items" class="screen">
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 10v10h16V10"/>
-          <path d="M3 10l2-6h14l2 6"/>
-          <path d="M3 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3"/>
-        </svg>
-      </div>
-      <span>Mercado Livre Dashboard</span>
-    </div>
-    <div class="account-mini">
-      <div id="topAvatar" class="avatar">ML</div>
-      <div>
-        <strong id="topStoreName">Loja</strong>
-        <small id="topSeller">Seller ID</small>
-      </div>
-    </div>
-  </header>
-
-  <main class="dashboard-main">
-    <section class="store-toolbar">
-      <div>
-        <button id="back" class="ghost">← Lojas</button>
-        <div class="store-heading">
-          <div id="logo" class="store-logo">ML</div>
-          <div>
-            <span class="eyebrow">PAINEL DA LOJA</span>
-            <h1 id="storeName">Loja</h1>
-            <span id="seller" class="muted"></span>
-          </div>
+        <div class="login-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M4 10v10h16V10" />
+            <path d="M3 10l2-6h14l2 6" />
+            <path d="M3 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3" />
+          </svg>
         </div>
+
+        <span class="eyebrow">DASHBOARD</span>
+
+        <h1>Mercado Livre</h1>
+
+        <p>
+          Gerencie suas lojas e acompanhe seus anúncios.
+        </p>
+
+        <form id="loginForm" novalidate>
+
+          <label for="code">
+            Código de acesso
+          </label>
+
+          <input id="code" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off"
+            placeholder="••••" autofocus>
+
+          <button type="submit" class="primary-button">
+            Entrar
+          </button>
+
+          <b id="loginError" class="form-error"></b>
+
+        </form>
+
       </div>
 
-      <div class="tools">
-        <select id="order">
-          <option value="sold_quantity_desc">Mais vendidos</option>
-          <option value="sold_quantity_asc">Menos vendidos</option>
-          <option value="price_asc">Menor preço</option>
-          <option value="price_desc">Maior preço</option>
-          <option value="available_quantity_asc">Menor estoque</option>
-          <option value="available_quantity_desc">Maior estoque</option>
-          <option value="last_updated_desc">Atualizados recentemente</option>
-          <option value="last_updated_asc">Atualizados há mais tempo</option>
-        </select>
-        <select id="limit">
-          <option value="12">12 por página</option>
-          <option value="24" selected>24 por página</option>
-          <option value="48">48 por página</option>
-          <option value="50">50 por página</option>
-        </select>
-        <button id="refresh" class="ghost">↻ Atualizar</button>
-      </div>
-    </section>
+    </div>
 
-    <section class="dashboard">
-      <div class="section-title">
+  </section>
+
+
+  <!-- =========================================================
+     LOJAS
+========================================================= -->
+
+  <section id="stores" class="screen">
+
+    <header class="topbar">
+
+      <div class="brand">
+
+        <div class="brand-icon">
+
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M4 10v10h16V10" />
+            <path d="M3 10l2-6h14l2 6" />
+            <path d="M3 10c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3" />
+          </svg>
+
+        </div>
+
+        <span>
+          Mercado Livre Dashboard
+        </span>
+
+      </div>
+
+      <button id="logout" class="ghost">
+        Sair
+      </button>
+
+    </header>
+
+
+    <main class="page-main">
+
+      <div class="page-heading">
+
         <div>
-          <span class="eyebrow">DESEMPENHO</span>
-          <h2>Resumo dos últimos 7 dias</h2>
+
+          <span class="eyebrow">
+            PAINEL
+          </span>
+
+          <h1>
+            Lojas cadastradas
+          </h1>
+
+          <p>
+            Selecione uma loja para acompanhar seu desempenho.
+          </p>
+
         </div>
-        <span id="salesPeriod" class="muted"></span>
+
       </div>
 
-      <div id="summaryCards" class="summary-cards">
-        <div class="stat-card skeleton"></div>
-        <div class="stat-card skeleton"></div>
-        <div class="stat-card skeleton"></div>
-        <div class="stat-card skeleton"></div>
+      <div id="storesGrid" class="stores"></div>
+
+    </main>
+
+  </section>
+
+
+  <!-- =========================================================
+     DASHBOARD / ANÚNCIOS
+========================================================= -->
+
+  <section id="items" class="screen">
+
+    <div class="report-shell">
+      <aside class="report-drawer" aria-label="Navegação principal">
+        <div class="report-drawer-top">
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard">
+            <span class="report-brand-mark">M</span><span>mercado livre</span>
+          </a>
+
+          <button id="itemStoreSwitcher" class="report-store-switcher report-store-button" type="button">
+            <div id="itemSideAvatar" class="report-side-avatar">ML</div>
+            <div><strong id="itemSideStoreName">Sua loja</strong><span>Trocar loja</span></div>
+            <b>⌄</b>
+          </button>
+
+          <nav class="report-nav">
+            <span class="report-nav-label">VISÃO GERAL</span>
+            <button class="report-nav-link active" type="button" aria-current="page"><span class="nav-symbol">⌂</span> Dashboard</button>
+            <button id="itemOpenReports" class="report-nav-link" type="button"><span class="nav-symbol">▥</span> Relatórios</button>
+            <span class="report-nav-label">GERENCIAR</span>
+            <button id="itemsCatalog" class="report-nav-link" type="button"><span class="nav-symbol">□</span> Anúncios</button>
+            <button class="report-nav-link" type="button" disabled><span class="nav-symbol">◉</span> Financeiro</button>
+          </nav>
+        </div>
+
+        <button id="itemLogout" class="report-logout" type="button"><span>↪</span> Sair</button>
+      </aside>
+
+      <main class="report-content items-content dashboard-main">
+        <header class="report-mobile-bar">
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span class="report-brand-mark">M</span><span>mercado livre</span></a>
+          <button id="itemMobileStores" class="report-mobile-back" type="button">Lojas</button>
+        </header>
+
+      <section class="store-toolbar items-page-heading">
+
+        <div>
+
+          <div class="store-heading">
+
+            <div id="logo" class="store-logo">
+              ML
+            </div>
+
+            <div>
+
+              <span class="eyebrow">DASHBOARD</span>
+
+              <h1 id="storeName">
+                Loja
+              </h1>
+
+              <span id="seller" class="muted"></span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="tools">
+          <button id="refresh" class="ghost">
+            ↻ Atualizar
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+         DESEMPENHO
+    ====================================================== -->
+
+      <section class="dashboard">
+
+        <div class="section-title">
+
+          <div>
+
+            <span class="eyebrow">
+              DESEMPENHO
+            </span>
+
+            <h2>
+              Resumo dos últimos 7 dias
+            </h2>
+
+          </div>
+
+          <span id="salesPeriod" class="muted"></span>
+
+        </div>
+
+
+        <div id="summaryCards" class="summary-cards">
+
+          <div class="stat-card skeleton"></div>
+          <div class="stat-card skeleton"></div>
+          <div class="stat-card skeleton"></div>
+          <div class="stat-card skeleton"></div>
+
+        </div>
+
+
+        <!-- GRÁFICO -->
+
+        <article class="chart-card combined-chart-card">
+
+          <div class="chart-header">
+
+            <div>
+
+              <span class="eyebrow">
+                DESEMPENHO
+              </span>
+
+              <h3>
+                Vendas, faturamento e cancelamentos — últimos 7 dias
+              </h3>
+
+            </div>
+
+
+            <div class="chart-totals">
+
+              <strong id="chartSalesTotal">
+                —
+              </strong>
+
+              <strong id="chartRevenueTotal">
+                —
+              </strong>
+
+              <strong id="chartCancelledTotal">
+                —
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <div class="chart-legend">
+
+            <span>
+              <i class="legend-sales"></i>
+              Vendas
+            </span>
+
+            <span>
+              <i class="legend-revenue"></i>
+              Faturamento
+            </span>
+
+            <span>
+              <i class="legend-cancel"></i>
+              Cancelamentos
+            </span>
+
+          </div>
+
+
+          <div id="combinedChart" class="line-chart"></div>
+
+        </article>
+
+
+        <!-- STATUS -->
+
+        <article class="status-card">
+
+          <div>
+
+            <span class="eyebrow">
+              STATUS DOS PEDIDOS
+            </span>
+
+            <h3>
+              Situação das vendas
+            </h3>
+
+          </div>
+
+          <div id="statusBars" class="status-bars"></div>
+
+        </article>
+
+      </section>
+
+
+      </main>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================================================
+     ANÚNCIOS / PEÇAS
+========================================================= -->
+
+  <section id="catalog" class="screen">
+    <div class="report-shell">
+      <aside class="report-drawer" aria-label="Navegação principal">
+        <div class="report-drawer-top">
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span class="report-brand-mark">M</span><span>mercado livre</span></a>
+
+          <button id="catalogStoreSwitcher" class="report-store-switcher report-store-button" type="button">
+            <div id="catalogSideAvatar" class="report-side-avatar">ML</div>
+            <div><strong id="catalogSideStoreName">Sua loja</strong><span>Trocar loja</span></div><b>⌄</b>
+          </button>
+
+          <nav class="report-nav">
+            <span class="report-nav-label">VISÃO GERAL</span>
+            <button id="catalogDashboard" class="report-nav-link" type="button"><span class="nav-symbol">⌂</span> Dashboard</button>
+            <button id="catalogReports" class="report-nav-link" type="button"><span class="nav-symbol">▥</span> Relatórios</button>
+            <span class="report-nav-label">GERENCIAR</span>
+            <button class="report-nav-link active" type="button" aria-current="page"><span class="nav-symbol">□</span> Anúncios</button>
+            <button class="report-nav-link" type="button" disabled><span class="nav-symbol">◉</span> Financeiro</button>
+          </nav>
+        </div>
+        <button id="catalogLogout" class="report-logout" type="button"><span>↪</span> Sair</button>
+      </aside>
+
+      <main class="report-content catalog-content dashboard-main">
+        <header class="report-mobile-bar">
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span class="report-brand-mark">M</span><span>mercado livre</span></a>
+          <button id="catalogMobileDashboard" class="report-mobile-back" type="button">Dashboard</button>
+        </header>
+
+        <section class="store-toolbar items-page-heading catalog-page-heading">
+          <div class="store-heading">
+            <div><span class="eyebrow">CATÁLOGO</span><h1>Anúncios e peças</h1><span id="catalogStoreName" class="muted">Produtos publicados na loja.</span></div>
+          </div>
+
+          <div class="tools">
+            <select id="order">
+              <option value="sold_quantity_desc">Mais vendidos</option>
+              <option value="sold_quantity_asc">Menos vendidos</option>
+              <option value="price_asc">Menor preço</option>
+              <option value="price_desc">Maior preço</option>
+              <option value="available_quantity_asc">Menor estoque</option>
+              <option value="available_quantity_desc">Maior estoque</option>
+              <option value="last_updated_desc">Atualizados recentemente</option>
+              <option value="last_updated_asc">Atualizados há mais tempo</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="announcements">
+          <div id="summary" class="catalog-summary muted"></div>
+          <div id="loading" class="loading">Carregando anúncios...</div>
+          <div class="catalog-table-wrap">
+            <table class="catalog-table">
+              <thead>
+                <tr>
+                  <th scope="col">Produto</th>
+                  <th scope="col">SKU</th>
+                  <th scope="col">Criação / atualização</th>
+                  <th scope="col">Preço</th>
+                  <th scope="col">Estoque</th>
+                  <th scope="col">Vendidos</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Atualizado</th>
+                  <th scope="col"><span class="sr-only">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody id="grid"></tbody>
+            </table>
+          </div>
+          <div id="pages" class="pages"></div>
+        </section>
+      </main>
+    </div>
+  </section>
+
+
+  <!-- =========================================================
+     RELATÓRIOS
+========================================================= -->
+
+  <section id="reports" class="screen">
+
+    <div class="report-shell">
+
+      <aside class="report-drawer" aria-label="Navegação principal">
+
+        <div class="report-drawer-top">
+
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard">
+            <span class="report-brand-mark">M</span>
+            <span>mercado livre</span>
+          </a>
+
+          <button id="reportStoreSwitcher" class="report-store-switcher report-store-button" type="button">
+            <div id="reportSideAvatar" class="report-side-avatar">ML</div>
+            <div>
+              <strong id="reportSideStoreName">Sua loja</strong>
+              <span>Trocar loja</span>
+            </div>
+            <b>⌄</b>
+          </button>
+
+          <nav class="report-nav">
+            <span class="report-nav-label">VISÃO GERAL</span>
+            <button id="reportsBack" class="report-nav-link" type="button">
+              <span class="nav-symbol">⌂</span> Dashboard
+            </button>
+            <button class="report-nav-link active" type="button" aria-current="page">
+              <span class="nav-symbol">▥</span> Relatórios
+            </button>
+
+            <span class="report-nav-label">GERENCIAR</span>
+            <button id="reportCatalog" class="report-nav-link" type="button">
+              <span class="nav-symbol">□</span> Anúncios
+            </button>
+            <button class="report-nav-link" type="button" disabled>
+              <span class="nav-symbol">◉</span> Financeiro
+            </button>
+          </nav>
+        </div>
+
+        <button id="reportLogout" class="report-logout" type="button">
+          <span>↪</span> Sair
+        </button>
+
+      </aside>
+
+      <main class="report-content">
+
+        <header class="report-mobile-bar">
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard">
+            <span class="report-brand-mark">M</span>
+            <span>mercado livre</span>
+          </a>
+          <button id="reportMobileBack" class="report-mobile-back" type="button">Dashboard</button>
+        </header>
+
+
+      <!-- =====================================================
+         CABEÇALHO
+    ====================================================== -->
+
+      <section class="report-page-heading">
+        <div>
+          <span class="eyebrow">RELATÓRIOS</span>
+          <h1>Visão de vendas</h1>
+          <p>Entenda os resultados da <strong id="reportStoreName">sua loja</strong> em um só lugar.</p>
+        </div>
+        <div class="report-store-badge">
+          <div id="reportLogo" class="store-logo">ML</div>
+          <span id="reportSeller" class="muted"></span>
+        </div>
+      </section>
+
+
+      <!-- =====================================================
+         FILTRO DE PERÍODO
+    ====================================================== -->
+
+      <section class="report-filter-card">
+
+        <div class="report-filter-info">
+
+          <span class="eyebrow">
+            PERÍODO
+          </span>
+
+          <h2>
+            Análise de vendas
+          </h2>
+
+          <p>
+            Escolha o período que deseja analisar.
+          </p>
+
+        </div>
+
+
+        <div class="report-filters">
+
+          <label>
+
+            <span>
+              Data inicial
+            </span>
+
+            <input id="reportFrom" type="date">
+
+          </label>
+
+
+          <label>
+
+            <span>
+              Data final
+            </span>
+
+            <input id="reportTo" type="date">
+
+          </label>
+
+
+          <button id="generateReport" class="primary-button" type="button">
+            Gerar relatório
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+         CARREGAMENTO
+    ====================================================== -->
+
+      <div id="reportLoading" class="report-loading" style="display:none">
+
+        <div class="report-loading-spinner"></div>
+
+        <div>
+
+          <strong>
+            Analisando vendas...
+          </strong>
+
+          <span id="reportLoadingText">
+            Consultando pedidos do período.
+          </span>
+
+        </div>
+
       </div>
 
-      <article class="chart-card combined-chart-card">
+
+      <!-- =====================================================
+         PROGRESSO
+    ====================================================== -->
+
+      <section id="reportProgress" class="report-progress" style="display:none">
+
+        <div class="report-progress-header">
+
+          <span>
+            Processando pedidos
+          </span>
+
+          <strong id="reportProgressCount">
+            0%
+          </strong>
+
+        </div>
+
+
+        <div class="report-progress-track">
+
+          <div id="reportProgressBar" class="report-progress-fill" style="width:0%"></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+         RESUMO
+    ====================================================== -->
+
+      <section id="reportSummary" class="summary-cards report-summary">
+
+        <div class="stat-card">
+
+          <span class="eyebrow">
+            VENDAS
+          </span>
+
+          <strong id="reportSales">
+            —
+          </strong>
+
+          <small>
+            pedidos aprovados
+          </small>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="eyebrow">
+            FATURAMENTO
+          </span>
+
+          <strong id="reportRevenue">
+            —
+          </strong>
+
+          <small>
+            no período
+          </small>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="eyebrow">
+            UNIDADES
+          </span>
+
+          <strong id="reportUnits">
+            —
+          </strong>
+
+          <small>
+            produtos vendidos
+          </small>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="eyebrow">
+            CANCELADOS
+          </span>
+
+          <strong id="reportCancelled">
+            —
+          </strong>
+
+          <small>
+            pedidos cancelados
+          </small>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+         GRÁFICO MENSAL
+    ====================================================== -->
+
+      <article class="chart-card combined-chart-card report-chart-card">
+
         <div class="chart-header">
+
           <div>
-            <span class="eyebrow">DESEMPENHO</span>
-            <h3>Vendas, faturamento e cancelamentos — últimos 7 dias</h3>
+
+            <span class="eyebrow">
+              EVOLUÇÃO
+            </span>
+
+            <h3>
+              Vendas por mês
+            </h3>
+
           </div>
-          <div class="chart-totals">
-            <strong id="chartSalesTotal">—</strong>
-            <strong id="chartRevenueTotal">—</strong>
-            <strong id="chartCancelledTotal">—</strong>
-          </div>
+
+
+          <span id="reportPeriodLabel" class="muted"></span>
+
         </div>
-        <div class="chart-legend">
-          <span><i class="legend-sales"></i>Vendas</span>
-          <span><i class="legend-revenue"></i>Faturamento</span>
-          <span><i class="legend-cancel"></i>Cancelamentos</span>
-        </div>
-        <div id="combinedChart" class="line-chart"></div>
+
+
+        <div id="reportMonthlyChart" class="line-chart report-monthly-chart"></div>
+
       </article>
 
-      <article class="status-card">
-        <div>
-          <span class="eyebrow">STATUS DOS PEDIDOS</span>
-          <h3>Situação das vendas</h3>
-        </div>
-        <div id="statusBars" class="status-bars"></div>
-      </article>
-    </section>
 
-    <section class="announcements">
-      <div class="section-title catalog-heading">
+      <!-- =====================================================
+         RANKINGS
+    ====================================================== -->
+
+      <section class="report-rankings">
+
+
+        <!-- MAIS VENDIDOS -->
+
+        <article class="report-card">
+
+          <div class="report-card-header">
+
+            <div>
+
+              <span class="eyebrow">
+                PRODUTOS
+              </span>
+
+              <h3>
+                Mais vendidos
+              </h3>
+
+            </div>
+
+            <span class="report-card-icon">
+              ↗
+            </span>
+
+          </div>
+
+
+          <div id="reportMostSold" class="report-product-list"></div>
+
+        </article>
+
+
+        <!-- MAIOR FATURAMENTO -->
+
+        <article class="report-card">
+
+          <div class="report-card-header">
+
+            <div>
+
+              <span class="eyebrow">
+                FATURAMENTO
+              </span>
+
+              <h3>
+                Maior faturamento
+              </h3>
+
+            </div>
+
+            <span class="report-card-icon">
+              R$
+            </span>
+
+          </div>
+
+
+          <div id="reportHighestRevenue" class="report-product-list"></div>
+
+        </article>
+
+
+        <!-- MENOS VENDIDOS -->
+
+        <article class="report-card">
+
+          <div class="report-card-header">
+
+            <div>
+
+              <span class="eyebrow">
+                PRODUTOS
+              </span>
+
+              <h3>
+                Menos vendidos
+              </h3>
+
+            </div>
+
+            <span class="report-card-icon">
+              ↘
+            </span>
+
+          </div>
+
+
+          <div id="reportLeastSold" class="report-product-list"></div>
+
+        </article>
+
+
+        <!-- MENOR FATURAMENTO -->
+
+        <article class="report-card">
+
+          <div class="report-card-header">
+
+            <div>
+
+              <span class="eyebrow">
+                FATURAMENTO
+              </span>
+
+              <h3>
+                Menor faturamento
+              </h3>
+
+            </div>
+
+            <span class="report-card-icon">
+              R$
+            </span>
+
+          </div>
+
+
+          <div id="reportLowestRevenue" class="report-product-list"></div>
+
+        </article>
+
+      </section>
+
+
+      </main>
+
+    </div>
+
+  </section>
+
+
+  <div id="storePicker" class="store-picker" aria-hidden="true">
+    <div class="store-picker-backdrop" data-close-store-picker></div>
+    <section class="store-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="storePickerTitle">
+      <div class="store-picker-header">
         <div>
-          <span class="eyebrow">CATÁLOGO</span>
-          <h2>Anúncios da loja</h2>
-          <p>Produtos publicados no Mercado Livre.</p>
+          <span class="eyebrow">SUAS LOJAS</span>
+          <h2 id="storePickerTitle">Selecione uma loja</h2>
+          <p>Escolha a loja que deseja acompanhar.</p>
         </div>
-        <div id="summary" class="muted"></div>
+        <button class="store-picker-close" type="button" aria-label="Fechar" data-close-store-picker>×</button>
       </div>
-      <div id="loading" class="loading">Carregando...</div>
-      <div id="grid" class="grid"></div>
-      <div id="pages" class="pages"></div>
+      <div id="storePickerList" class="store-picker-list"></div>
+      <button id="storePickerManage" class="store-picker-manage" type="button">+ Adicionar loja</button>
     </section>
-  </main>
-</section>
+  </div>
 
-<div id="toast" class="toast"></div>
-<script src="js/config.js"></script>
-<script src="js/api.js"></script>
-<script src="js/app.js"></script>
+  <div id="itemGallery" class="item-gallery" aria-hidden="true">
+    <div class="item-gallery-backdrop" data-close-gallery></div>
+    <section class="item-gallery-dialog" role="dialog" aria-modal="true" aria-labelledby="itemGalleryTitle">
+      <button class="item-gallery-close" type="button" aria-label="Fechar fotos" data-close-gallery>×</button>
+      <div class="item-gallery-image-wrap">
+        <img id="itemGalleryImage" src="" alt="">
+        <div id="itemGalleryEmpty" class="item-gallery-empty">Sem imagens disponíveis</div>
+        <button id="itemGalleryPrev" class="item-gallery-nav prev" type="button" aria-label="Foto anterior">‹</button>
+        <button id="itemGalleryNext" class="item-gallery-nav next" type="button" aria-label="Próxima foto">›</button>
+      </div>
+      <div class="item-gallery-footer">
+        <div>
+          <span id="itemGalleryCount"></span>
+          <h2 id="itemGalleryTitle"></h2>
+        </div>
+        <a id="itemGalleryLink" class="item-gallery-link" href="#" target="_blank" rel="noopener">Ver anúncio ↗</a>
+      </div>
+    </section>
+  </div>
+
+
+  <!-- =========================================================
+     TOAST
+========================================================= -->
+
+  <div id="toast" class="toast"></div>
+
+
+  <!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+
 </body>
+
 </html>
