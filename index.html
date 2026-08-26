@@ -145,10 +145,13 @@
 
           <nav class="report-nav">
             <span class="report-nav-label">VISÃO GERAL</span>
-            <button class="report-nav-link active" type="button" aria-current="page"><span class="nav-symbol">⌂</span> Dashboard</button>
-            <button id="itemOpenReports" class="report-nav-link" type="button"><span class="nav-symbol">▥</span> Relatórios</button>
+            <button class="report-nav-link active" type="button" aria-current="page"><span class="nav-symbol">⌂</span>
+              Dashboard</button>
+            <button id="itemOpenReports" class="report-nav-link" type="button"><span class="nav-symbol">▥</span>
+              Relatórios</button>
             <span class="report-nav-label">GERENCIAR</span>
-            <button id="itemsCatalog" class="report-nav-link" type="button"><span class="nav-symbol">□</span> Anúncios</button>
+            <button id="itemsCatalog" class="report-nav-link" type="button"><span class="nav-symbol">□</span>
+              Anúncios</button>
             <button class="report-nav-link" type="button" disabled><span class="nav-symbol">◉</span> Financeiro</button>
           </nav>
         </div>
@@ -158,87 +161,55 @@
 
       <main class="report-content items-content dashboard-main">
         <header class="report-mobile-bar">
-          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span class="report-brand-mark">M</span><span>mercado livre</span></a>
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span
+              class="report-brand-mark">M</span><span>mercado livre</span></a>
           <button id="itemMobileStores" class="report-mobile-back" type="button">Lojas</button>
         </header>
 
-      <section class="store-toolbar items-page-heading">
-
-        <div>
-
-          <div class="store-heading">
-
-            <div id="logo" class="store-logo">
-              ML
-            </div>
-
-            <div>
-
-              <span class="eyebrow">DASHBOARD</span>
-
-              <h1 id="storeName">
-                Loja
-              </h1>
-
-              <span id="seller" class="muted"></span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div class="tools">
-          <button id="refresh" class="ghost">
-            ↻ Atualizar
-          </button>
-
-        </div>
-
-      </section>
-
-
-      <!-- =====================================================
-         DESEMPENHO
-    ====================================================== -->
-
-      <section class="dashboard">
-
-        <div class="section-title">
+        <section class="store-toolbar items-page-heading">
 
           <div>
 
-            <span class="eyebrow">
-              DESEMPENHO
-            </span>
+            <div class="store-heading">
 
-            <h2>
-              Resumo dos últimos 7 dias
-            </h2>
+              <div id="logo" class="store-logo">
+                ML
+              </div>
+
+              <div>
+
+                <span class="eyebrow">DASHBOARD</span>
+
+                <h1 id="storeName">
+                  Loja
+                </h1>
+
+                <span id="seller" class="muted"></span>
+
+              </div>
+
+            </div>
 
           </div>
 
-          <span id="salesPeriod" class="muted"></span>
 
-        </div>
+          <div class="tools">
+            <button id="refresh" class="ghost">
+              ↻ Atualizar
+            </button>
 
+          </div>
 
-        <div id="summaryCards" class="summary-cards">
-
-          <div class="stat-card skeleton"></div>
-          <div class="stat-card skeleton"></div>
-          <div class="stat-card skeleton"></div>
-          <div class="stat-card skeleton"></div>
-
-        </div>
+        </section>
 
 
-        <!-- GRÁFICO -->
+        <!-- =====================================================
+         DESEMPENHO
+    ====================================================== -->
 
-        <article class="chart-card combined-chart-card">
+        <section class="dashboard">
 
-          <div class="chart-header">
+          <div class="section-title">
 
             <div>
 
@@ -246,78 +217,111 @@
                 DESEMPENHO
               </span>
 
+              <h2>
+                Resumo dos últimos 7 dias
+              </h2>
+
+            </div>
+
+            <span id="salesPeriod" class="muted"></span>
+
+          </div>
+
+
+          <div id="summaryCards" class="summary-cards">
+
+            <div class="stat-card skeleton"></div>
+            <div class="stat-card skeleton"></div>
+            <div class="stat-card skeleton"></div>
+            <div class="stat-card skeleton"></div>
+
+          </div>
+
+
+          <!-- GRÁFICO -->
+
+          <article class="chart-card combined-chart-card">
+
+            <div class="chart-header">
+
+              <div>
+
+                <span class="eyebrow">
+                  DESEMPENHO
+                </span>
+
+                <h3>
+                  Vendas, faturamento e cancelamentos — últimos 7 dias
+                </h3>
+
+              </div>
+
+
+              <div class="chart-totals">
+
+                <strong id="chartSalesTotal">
+                  —
+                </strong>
+
+                <strong id="chartRevenueTotal">
+                  —
+                </strong>
+
+                <strong id="chartCancelledTotal">
+                  —
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            <div class="chart-legend">
+
+              <span>
+                <i class="legend-sales"></i>
+                Vendas
+              </span>
+
+              <span>
+                <i class="legend-revenue"></i>
+                Faturamento
+              </span>
+
+              <span>
+                <i class="legend-cancel"></i>
+                Cancelamentos
+              </span>
+
+            </div>
+
+
+            <div id="combinedChart" class="line-chart"></div>
+
+          </article>
+
+
+          <!-- STATUS -->
+
+          <article class="status-card">
+
+            <div>
+
+              <span class="eyebrow">
+                STATUS DOS PEDIDOS
+              </span>
+
               <h3>
-                Vendas, faturamento e cancelamentos — últimos 7 dias
+                Situação das vendas
               </h3>
 
             </div>
 
+            <div id="statusBars" class="status-bars"></div>
 
-            <div class="chart-totals">
+          </article>
 
-              <strong id="chartSalesTotal">
-                —
-              </strong>
-
-              <strong id="chartRevenueTotal">
-                —
-              </strong>
-
-              <strong id="chartCancelledTotal">
-                —
-              </strong>
-
-            </div>
-
-          </div>
-
-
-          <div class="chart-legend">
-
-            <span>
-              <i class="legend-sales"></i>
-              Vendas
-            </span>
-
-            <span>
-              <i class="legend-revenue"></i>
-              Faturamento
-            </span>
-
-            <span>
-              <i class="legend-cancel"></i>
-              Cancelamentos
-            </span>
-
-          </div>
-
-
-          <div id="combinedChart" class="line-chart"></div>
-
-        </article>
-
-
-        <!-- STATUS -->
-
-        <article class="status-card">
-
-          <div>
-
-            <span class="eyebrow">
-              STATUS DOS PEDIDOS
-            </span>
-
-            <h3>
-              Situação das vendas
-            </h3>
-
-          </div>
-
-          <div id="statusBars" class="status-bars"></div>
-
-        </article>
-
-      </section>
+        </section>
 
 
       </main>
@@ -335,7 +339,8 @@
     <div class="report-shell">
       <aside class="report-drawer" aria-label="Navegação principal">
         <div class="report-drawer-top">
-          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span class="report-brand-mark">M</span><span>mercado livre</span></a>
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span
+              class="report-brand-mark">M</span><span>mercado livre</span></a>
 
           <button id="catalogStoreSwitcher" class="report-store-switcher report-store-button" type="button">
             <div id="catalogSideAvatar" class="report-side-avatar">ML</div>
@@ -344,10 +349,13 @@
 
           <nav class="report-nav">
             <span class="report-nav-label">VISÃO GERAL</span>
-            <button id="catalogDashboard" class="report-nav-link" type="button"><span class="nav-symbol">⌂</span> Dashboard</button>
-            <button id="catalogReports" class="report-nav-link" type="button"><span class="nav-symbol">▥</span> Relatórios</button>
+            <button id="catalogDashboard" class="report-nav-link" type="button"><span class="nav-symbol">⌂</span>
+              Dashboard</button>
+            <button id="catalogReports" class="report-nav-link" type="button"><span class="nav-symbol">▥</span>
+              Relatórios</button>
             <span class="report-nav-label">GERENCIAR</span>
-            <button class="report-nav-link active" type="button" aria-current="page"><span class="nav-symbol">□</span> Anúncios</button>
+            <button class="report-nav-link active" type="button" aria-current="page"><span class="nav-symbol">□</span>
+              Anúncios</button>
             <button class="report-nav-link" type="button" disabled><span class="nav-symbol">◉</span> Financeiro</button>
           </nav>
         </div>
@@ -356,13 +364,16 @@
 
       <main class="report-content catalog-content dashboard-main">
         <header class="report-mobile-bar">
-          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span class="report-brand-mark">M</span><span>mercado livre</span></a>
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard"><span
+              class="report-brand-mark">M</span><span>mercado livre</span></a>
           <button id="catalogMobileDashboard" class="report-mobile-back" type="button">Dashboard</button>
         </header>
 
         <section class="store-toolbar items-page-heading catalog-page-heading">
           <div class="store-heading">
-            <div><span class="eyebrow">CATÁLOGO</span><h1>Anúncios e peças</h1><span id="catalogStoreName" class="muted">Produtos publicados na loja.</span></div>
+            <div><span class="eyebrow">CATÁLOGO</span>
+              <h1>Anúncios e peças</h1><span id="catalogStoreName" class="muted">Produtos publicados na loja.</span>
+            </div>
           </div>
 
           <div class="tools">
@@ -469,364 +480,364 @@
         </header>
 
 
-      <!-- =====================================================
+        <!-- =====================================================
          CABEÇALHO
     ====================================================== -->
 
-      <section class="report-page-heading">
-        <div>
-          <span class="eyebrow">RELATÓRIOS</span>
-          <h1>Visão de vendas</h1>
-          <p>Entenda os resultados da <strong id="reportStoreName">sua loja</strong> em um só lugar.</p>
-        </div>
-        <div class="report-store-badge">
-          <div id="reportLogo" class="store-logo">ML</div>
-          <span id="reportSeller" class="muted"></span>
-        </div>
-      </section>
+        <section class="report-page-heading">
+          <div>
+            <span class="eyebrow">RELATÓRIOS</span>
+            <h1>Visão de vendas</h1>
+            <p>Entenda os resultados da <strong id="reportStoreName">sua loja</strong> em um só lugar.</p>
+          </div>
+          <div class="report-store-badge">
+            <div id="reportLogo" class="store-logo">ML</div>
+            <span id="reportSeller" class="muted"></span>
+          </div>
+        </section>
 
 
-      <!-- =====================================================
+        <!-- =====================================================
          FILTRO DE PERÍODO
     ====================================================== -->
 
-      <section class="report-filter-card">
+        <section class="report-filter-card">
 
-        <div class="report-filter-info">
+          <div class="report-filter-info">
 
-          <span class="eyebrow">
-            PERÍODO
-          </span>
-
-          <h2>
-            Análise de vendas
-          </h2>
-
-          <p>
-            Escolha o período que deseja analisar.
-          </p>
-
-        </div>
-
-
-        <div class="report-filters">
-
-          <label>
-
-            <span>
-              Data inicial
+            <span class="eyebrow">
+              PERÍODO
             </span>
 
-            <input id="reportFrom" type="date">
+            <h2>
+              Análise de vendas
+            </h2>
 
-          </label>
+            <p>
+              Escolha o período que deseja analisar.
+            </p>
 
-
-          <label>
-
-            <span>
-              Data final
-            </span>
-
-            <input id="reportTo" type="date">
-
-          </label>
+          </div>
 
 
-          <button id="generateReport" class="primary-button" type="button">
-            Gerar relatório
-          </button>
+          <div class="report-filters">
 
-        </div>
+            <label>
 
-      </section>
+              <span>
+                Data inicial
+              </span>
+
+              <input id="reportFrom" type="date">
+
+            </label>
 
 
-      <!-- =====================================================
+            <label>
+
+              <span>
+                Data final
+              </span>
+
+              <input id="reportTo" type="date">
+
+            </label>
+
+
+            <button id="generateReport" class="primary-button" type="button">
+              Gerar relatório
+            </button>
+
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
          CARREGAMENTO
     ====================================================== -->
 
-      <div id="reportLoading" class="report-loading" style="display:none">
+        <div id="reportLoading" class="report-loading" style="display:none">
 
-        <div class="report-loading-spinner"></div>
-
-        <div>
-
-          <strong>
-            Analisando vendas...
-          </strong>
-
-          <span id="reportLoadingText">
-            Consultando pedidos do período.
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <!-- =====================================================
-         PROGRESSO
-    ====================================================== -->
-
-      <section id="reportProgress" class="report-progress" style="display:none">
-
-        <div class="report-progress-header">
-
-          <span>
-            Processando pedidos
-          </span>
-
-          <strong id="reportProgressCount">
-            0%
-          </strong>
-
-        </div>
-
-
-        <div class="report-progress-track">
-
-          <div id="reportProgressBar" class="report-progress-fill" style="width:0%"></div>
-
-        </div>
-
-      </section>
-
-
-      <!-- =====================================================
-         RESUMO
-    ====================================================== -->
-
-      <section id="reportSummary" class="summary-cards report-summary">
-
-        <div class="stat-card">
-
-          <span class="eyebrow">
-            VENDAS
-          </span>
-
-          <strong id="reportSales">
-            —
-          </strong>
-
-          <small>
-            pedidos aprovados
-          </small>
-
-        </div>
-
-
-        <div class="stat-card">
-
-          <span class="eyebrow">
-            FATURAMENTO
-          </span>
-
-          <strong id="reportRevenue">
-            —
-          </strong>
-
-          <small>
-            no período
-          </small>
-
-        </div>
-
-
-        <div class="stat-card">
-
-          <span class="eyebrow">
-            UNIDADES
-          </span>
-
-          <strong id="reportUnits">
-            —
-          </strong>
-
-          <small>
-            produtos vendidos
-          </small>
-
-        </div>
-
-
-        <div class="stat-card">
-
-          <span class="eyebrow">
-            CANCELADOS
-          </span>
-
-          <strong id="reportCancelled">
-            —
-          </strong>
-
-          <small>
-            pedidos cancelados
-          </small>
-
-        </div>
-
-      </section>
-
-
-      <!-- =====================================================
-         GRÁFICO MENSAL
-    ====================================================== -->
-
-      <article class="chart-card combined-chart-card report-chart-card">
-
-        <div class="chart-header">
+          <div class="report-loading-spinner"></div>
 
           <div>
 
-            <span class="eyebrow">
-              EVOLUÇÃO
+            <strong>
+              Analisando vendas...
+            </strong>
+
+            <span id="reportLoadingText">
+              Consultando pedidos do período.
             </span>
 
-            <h3>
-              Vendas por mês
-            </h3>
-
           </div>
-
-
-          <span id="reportPeriodLabel" class="muted"></span>
 
         </div>
 
 
-        <div id="reportMonthlyChart" class="line-chart report-monthly-chart"></div>
+        <!-- =====================================================
+         PROGRESSO
+    ====================================================== -->
 
-      </article>
+        <section id="reportProgress" class="report-progress" style="display:none">
+
+          <div class="report-progress-header">
+
+            <span>
+              Processando pedidos
+            </span>
+
+            <strong id="reportProgressCount">
+              0%
+            </strong>
+
+          </div>
 
 
-      <!-- =====================================================
+          <div class="report-progress-track">
+
+            <div id="reportProgressBar" class="report-progress-fill" style="width:0%"></div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
+         RESUMO
+    ====================================================== -->
+
+        <section id="reportSummary" class="summary-cards report-summary">
+
+          <div class="stat-card">
+
+            <span class="eyebrow">
+              VENDAS
+            </span>
+
+            <strong id="reportSales">
+              —
+            </strong>
+
+            <small>
+              pedidos aprovados
+            </small>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <span class="eyebrow">
+              FATURAMENTO
+            </span>
+
+            <strong id="reportRevenue">
+              —
+            </strong>
+
+            <small>
+              no período
+            </small>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <span class="eyebrow">
+              UNIDADES
+            </span>
+
+            <strong id="reportUnits">
+              —
+            </strong>
+
+            <small>
+              produtos vendidos
+            </small>
+
+          </div>
+
+
+          <div class="stat-card">
+
+            <span class="eyebrow">
+              CANCELADOS
+            </span>
+
+            <strong id="reportCancelled">
+              —
+            </strong>
+
+            <small>
+              pedidos cancelados
+            </small>
+
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
+         GRÁFICO MENSAL
+    ====================================================== -->
+
+        <article class="chart-card combined-chart-card report-chart-card">
+
+          <div class="chart-header">
+
+            <div>
+
+              <span class="eyebrow">
+                EVOLUÇÃO
+              </span>
+
+              <h3>
+                Vendas por mês
+              </h3>
+
+            </div>
+
+
+            <span id="reportPeriodLabel" class="muted"></span>
+
+          </div>
+
+
+          <div id="reportMonthlyChart" class="line-chart report-monthly-chart"></div>
+
+        </article>
+
+
+        <!-- =====================================================
          RANKINGS
     ====================================================== -->
 
-      <section class="report-rankings">
+        <section class="report-rankings">
 
 
-        <!-- MAIS VENDIDOS -->
+          <!-- MAIS VENDIDOS -->
 
-        <article class="report-card">
+          <article class="report-card">
 
-          <div class="report-card-header">
+            <div class="report-card-header">
 
-            <div>
+              <div>
 
-              <span class="eyebrow">
-                PRODUTOS
+                <span class="eyebrow">
+                  PRODUTOS
+                </span>
+
+                <h3>
+                  Mais vendidos
+                </h3>
+
+              </div>
+
+              <span class="report-card-icon">
+                ↗
               </span>
-
-              <h3>
-                Mais vendidos
-              </h3>
 
             </div>
 
-            <span class="report-card-icon">
-              ↗
-            </span>
 
-          </div>
+            <div id="reportMostSold" class="report-product-list"></div>
 
-
-          <div id="reportMostSold" class="report-product-list"></div>
-
-        </article>
+          </article>
 
 
-        <!-- MAIOR FATURAMENTO -->
+          <!-- MAIOR FATURAMENTO -->
 
-        <article class="report-card">
+          <article class="report-card">
 
-          <div class="report-card-header">
+            <div class="report-card-header">
 
-            <div>
+              <div>
 
-              <span class="eyebrow">
-                FATURAMENTO
+                <span class="eyebrow">
+                  FATURAMENTO
+                </span>
+
+                <h3>
+                  Maior faturamento
+                </h3>
+
+              </div>
+
+              <span class="report-card-icon">
+                R$
               </span>
-
-              <h3>
-                Maior faturamento
-              </h3>
 
             </div>
 
-            <span class="report-card-icon">
-              R$
-            </span>
 
-          </div>
+            <div id="reportHighestRevenue" class="report-product-list"></div>
 
-
-          <div id="reportHighestRevenue" class="report-product-list"></div>
-
-        </article>
+          </article>
 
 
-        <!-- MENOS VENDIDOS -->
+          <!-- MENOS VENDIDOS -->
 
-        <article class="report-card">
+          <article class="report-card">
 
-          <div class="report-card-header">
+            <div class="report-card-header">
 
-            <div>
+              <div>
 
-              <span class="eyebrow">
-                PRODUTOS
+                <span class="eyebrow">
+                  PRODUTOS
+                </span>
+
+                <h3>
+                  Menos vendidos
+                </h3>
+
+              </div>
+
+              <span class="report-card-icon">
+                ↘
               </span>
-
-              <h3>
-                Menos vendidos
-              </h3>
 
             </div>
 
-            <span class="report-card-icon">
-              ↘
-            </span>
 
-          </div>
+            <div id="reportLeastSold" class="report-product-list"></div>
 
-
-          <div id="reportLeastSold" class="report-product-list"></div>
-
-        </article>
+          </article>
 
 
-        <!-- MENOR FATURAMENTO -->
+          <!-- MENOR FATURAMENTO -->
 
-        <article class="report-card">
+          <article class="report-card">
 
-          <div class="report-card-header">
+            <div class="report-card-header">
 
-            <div>
+              <div>
 
-              <span class="eyebrow">
-                FATURAMENTO
+                <span class="eyebrow">
+                  FATURAMENTO
+                </span>
+
+                <h3>
+                  Menor faturamento
+                </h3>
+
+              </div>
+
+              <span class="report-card-icon">
+                R$
               </span>
-
-              <h3>
-                Menor faturamento
-              </h3>
 
             </div>
 
-            <span class="report-card-icon">
-              R$
-            </span>
 
-          </div>
+            <div id="reportLowestRevenue" class="report-product-list"></div>
 
+          </article>
 
-          <div id="reportLowestRevenue" class="report-product-list"></div>
-
-        </article>
-
-      </section>
+        </section>
 
 
       </main>
@@ -870,6 +881,12 @@
         <a id="itemGalleryLink" class="item-gallery-link" href="#" target="_blank" rel="noopener">Ver anúncio ↗</a>
       </div>
     </section>
+  </div>
+
+  <!-- Preview do produto ao passar o mouse (relatório) -->
+  <div id="reportPreview" class="report-preview" aria-hidden="true">
+    <img id="reportPreviewImage" src="" alt="">
+    <span id="reportPreviewTitle"></span>
   </div>
 
 

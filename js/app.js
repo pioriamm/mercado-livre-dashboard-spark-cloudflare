@@ -285,7 +285,8 @@ function renderStorePicker(stores) {
   }
 
   if (!stores.length) {
-    list.innerHTML = '<div class="store-picker-empty">Nenhuma loja cadastrada.</div>';
+    list.innerHTML =
+      '<div class="store-picker-empty">Nenhuma loja cadastrada.</div>';
 
     return;
   }
@@ -357,7 +358,11 @@ async function showStorePicker() {
 }
 
 function initStorePicker() {
-  ["#itemStoreSwitcher", "#reportStoreSwitcher", "#catalogStoreSwitcher"].forEach((selector) => {
+  [
+    "#itemStoreSwitcher",
+    "#reportStoreSwitcher",
+    "#catalogStoreSwitcher",
+  ].forEach((selector) => {
     const button = $(selector);
 
     if (button) {
@@ -1430,8 +1435,8 @@ function openReports() {
   /*
    * Datas padrão:
    *
-   * primeiro dia do ano atual
-   * até a data atual.
+   * Data inicial e data final sempre
+   * começam na data de hoje.
    *
    * As datas continuam editáveis
    * pelo usuário na tela.
@@ -1439,18 +1444,18 @@ function openReports() {
 
   const today = new Date();
 
-  const start = new Date(today.getFullYear(), 0, 1);
+  const todayValue = today.toISOString().slice(0, 10);
 
   const from = $("#reportFrom");
 
   const to = $("#reportTo");
 
   if (from && !from.value) {
-    from.value = start.toISOString().slice(0, 10);
+    from.value = todayValue;
   }
 
   if (to && !to.value) {
-    to.value = today.toISOString().slice(0, 10);
+    to.value = todayValue;
   }
 
   screen("#reports");
@@ -2042,10 +2047,14 @@ function renderReportRanking(selector, products, revenueMode = false) {
 
       const revenue = money(product.revenue);
 
-      const image = product.thumbnail
+      const thumbnail = product.thumbnail || imgs(product)[0] || "";
+
+      const permalink = product.permalink || "";
+
+      const image = thumbnail
         ? `
                 <img
-                  src="${esc(product.thumbnail)}"
+                  src="${esc(thumbnail)}"
                   alt=""
                   loading="lazy"
                 >
@@ -2060,7 +2069,10 @@ function renderReportRanking(selector, products, revenueMode = false) {
 
       return `
             <div
-              class="report-product-row"
+              class="report-product-row${permalink ? "" : " no-link"}"
+              data-permalink="${esc(permalink)}"
+              data-thumbnail="${esc(thumbnail)}"
+              data-title="${title}"
             >
 
               <div
@@ -2100,6 +2112,90 @@ function renderReportRanking(selector, products, revenueMode = false) {
           `;
     })
     .join("");
+
+  container.querySelectorAll(".report-product-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      const permalink = row.dataset.permalink;
+
+      if (permalink) {
+        window.open(permalink, "_blank", "noopener");
+      }
+    });
+
+    row.addEventListener("mouseenter", () => showReportPreview(row));
+
+    row.addEventListener("mousemove", (event) => positionReportPreview(event));
+
+    row.addEventListener("mouseleave", hideReportPreview);
+  });
+}
+
+/* =========================================================
+   PREVIEW DO PRODUTO (RELATÓRIO)
+========================================================= */
+
+function showReportPreview(row) {
+  const preview = $("#reportPreview");
+
+  if (!preview) {
+    return;
+  }
+
+  const image = $("#reportPreviewImage");
+
+  const title = $("#reportPreviewTitle");
+
+  const thumbnail = row.dataset.thumbnail;
+
+  if (image) {
+    if (thumbnail) {
+      image.src = thumbnail;
+
+      image.style.display = "block";
+    } else {
+      image.removeAttribute("src");
+
+      image.style.display = "none";
+    }
+  }
+
+  if (title) {
+    title.textContent = row.dataset.title || "";
+  }
+
+  preview.classList.add("visible");
+}
+
+function positionReportPreview(event) {
+  const preview = $("#reportPreview");
+
+  if (!preview || !preview.classList.contains("visible")) {
+    return;
+  }
+
+  const offset = 18;
+
+  const rect = preview.getBoundingClientRect();
+
+  const maxLeft = window.innerWidth - rect.width - 10;
+
+  const maxTop = window.innerHeight - rect.height - 10;
+
+  const left = Math.min(event.clientX + offset, Math.max(10, maxLeft));
+
+  const top = Math.min(event.clientY + offset, Math.max(10, maxTop));
+
+  preview.style.left = `${left}px`;
+
+  preview.style.top = `${top}px`;
+}
+
+function hideReportPreview() {
+  const preview = $("#reportPreview");
+
+  if (preview) {
+    preview.classList.remove("visible");
+  }
 }
 
 /* =========================================================

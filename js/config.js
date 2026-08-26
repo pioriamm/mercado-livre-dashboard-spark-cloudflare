@@ -1,1 +1,5 @@
-window.APP_CONFIG={apiBaseUrl:"https://mercado-livre-dashboard-api.mercado-livre-marcelo.workers.dev",pageLimit:24};
+window.APP_CONFIG=
+{
+    apiBaseUrl:"https://mercado-livre-dashboard-api.mercado-livre-marcelo.workers.dev",
+    pageLimit:24
+};

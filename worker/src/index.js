@@ -852,7 +852,8 @@ function reportMonthLabel(key) {
  * Primeiro analisamos os pedidos.
  *
  * Só depois buscamos detalhes dos
- * anúncios que realmente tiveram venda.
+ * anúncios que realmente tiveram venda
+ * (permalink, foto, preço, etc.).
  */
 async function getSalesReport(
   sellerId,
@@ -975,10 +976,9 @@ async function getSalesReport(
           orders: 0,
 
           /*
-           * Esses dados podem não estar
-           * disponíveis em order_items.
-           *
-           * Por isso ficam vazios.
+           * Esses dados são completados logo abaixo
+           * com uma consulta a /items para os
+           * produtos que tiveram venda.
            */
           price: unitPrice,
 
@@ -1029,32 +1029,54 @@ async function getSalesReport(
     }
   }
 
+  const soldItemIds = Array.from(productMap.keys());
+
   /*
    * =======================================================
-   * NÃO BUSCAR /items AQUI
+   * DETALHES DOS ANÚNCIOS VENDIDOS
    * =======================================================
    *
-   * Antes fazíamos:
+   * Buscamos aqui SOMENTE os anúncios que
+   * tiveram venda nesta página do relatório
+   * (nunca todos os anúncios da loja).
    *
-   *   /items?id1,id2,id3...
-   *
-   * Isso adicionava subrequests ao Worker.
-   *
-   * Agora o relatório utiliza diretamente
-   * os dados existentes em order_items.
-   *
-   * Isso é suficiente para:
-   *
-   * - Mais vendidos
-   * - Menos vendidos
-   * - Maior faturamento
-   * - Menor faturamento
-   * - Quantidade vendida
-   * - Faturamento
-   * - Vendas mensais
+   * Isso preenche permalink, foto, preço,
+   * estoque e status — usados no frontend
+   * para abrir o anúncio no Mercado Livre
+   * e mostrar o preview ao passar o mouse.
    */
 
-  const soldItemIds = Array.from(productMap.keys());
+  if (soldItemIds.length) {
+    const details = await fetchItemsByIds(soldItemIds, accessToken);
+
+    for (const detail of details) {
+      const id = String(detail.id || "").trim();
+
+      const product = productMap.get(id);
+
+      if (!product) {
+        continue;
+      }
+
+      product.permalink = detail.permalink || product.permalink;
+
+      product.thumbnail = detail.thumbnail || product.thumbnail;
+
+      if (Array.isArray(detail.pictures) && detail.pictures.length) {
+        product.pictures = detail.pictures;
+      }
+
+      if (Number(detail.price) > 0) {
+        product.price = Number(detail.price);
+      }
+
+      product.available_quantity = Number(
+        detail.available_quantity ?? product.available_quantity,
+      );
+
+      product.status = detail.status || product.status;
+    }
+  }
 
   /*
    * =======================================================
