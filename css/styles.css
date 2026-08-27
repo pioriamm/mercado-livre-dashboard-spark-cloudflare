@@ -2597,3 +2597,223 @@ a {
     display: none !important
   }
 }
+
+/* =========================================================
+   RENTABILIDADE
+========================================================= */
+.profit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 99px;
+  font-size: 9px;
+  font-weight: 850;
+  white-space: nowrap
+}
+
+.profit-badge.excelente {
+  background: #eaf8f0;
+  color: var(--green)
+}
+
+.profit-badge.atencao {
+  background: #fff4e5;
+  color: #b76100
+}
+
+.profit-badge.prejuizo {
+  background: #fff0ef;
+  color: var(--red)
+}
+
+.profit-badge.sem_dados {
+  background: #eef0f2;
+  color: #697386
+}
+
+.profit-nd {
+  color: #9aa1aa;
+  font-style: normal;
+  cursor: help;
+  border-bottom: 1px dotted #c7ccd3
+}
+
+.profit-table .catalog-product {
+  min-width: 220px
+}
+
+.profit-config-btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: #3e5fc9;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap
+}
+
+.profit-config-btn:hover {
+  border-color: #c3d0f5;
+  background: #f4f7ff
+}
+
+.profit-fiscal-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 39px;
+  white-space: nowrap
+}
+
+@media(max-width:720px) {
+  .report-filters .profit-fiscal-btn {
+    grid-column: 1/-1;
+    width: 100%;
+    justify-content: center
+  }
+}
+
+/* Modal genérico (custos / configuração fiscal) */
+.simple-modal {
+  position: fixed;
+  z-index: 140;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px
+}
+
+.simple-modal.open {
+  display: flex
+}
+
+.simple-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(21, 24, 29, .46);
+  backdrop-filter: blur(3px)
+}
+
+.simple-modal-dialog {
+  position: relative;
+  width: min(460px, 100%);
+  max-height: min(680px, calc(100vh - 40px));
+  overflow: auto;
+  padding: 24px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .22)
+}
+
+.simple-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px
+}
+
+.simple-modal-header h2 {
+  margin: 5px 0 4px;
+  font-size: 19px;
+  letter-spacing: -.03em
+}
+
+.simple-modal-header p {
+  margin: 0;
+  color: #737b87;
+  font-size: 11px
+}
+
+.simple-modal-close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: #f3f4f5;
+  color: #555d68;
+  font-size: 22px;
+  line-height: 1;
+  flex: 0 0 auto
+}
+
+.simple-modal-close:hover {
+  background: #e8eaec
+}
+
+.simple-modal-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px
+}
+
+.simple-modal-field label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #454b54
+}
+
+.simple-modal-field input,
+.simple-modal-field select {
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0 11px;
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+  background: #fff;
+  color: var(--ink)
+}
+
+.simple-modal-field input:focus,
+.simple-modal-field select:focus {
+  border-color: #aeb5bf
+}
+
+.simple-modal-field small {
+  color: #8a929d;
+  font-size: 9px;
+  line-height: 1.5
+}
+
+.simple-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px
+}
+
+.simple-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px
+}
+
+.simple-modal-footer .ghost {
+  height: 40px
+}
+
+.simple-modal-footer .primary-button {
+  width: auto;
+  padding: 0 18px;
+  margin: 0;
+  height: 40px
+}
+
+@media(max-width:520px) {
+  .simple-modal {
+    padding: 12px
+  }
+
+  .simple-modal-dialog {
+    padding: 20px
+  }
+
+  .simple-modal-grid {
+    grid-template-columns: 1fr
+  }
+}

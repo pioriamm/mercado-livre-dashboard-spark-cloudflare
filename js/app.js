@@ -150,6 +150,64 @@ const API = {
       )}/reports/sales?${params.toString()}`,
     );
   },
+
+  /*
+   * =======================================================
+   * RENTABILIDADE
+   * =======================================================
+   */
+
+  async profitabilityReport(sellerId, from, to, offset = 0, limit = 50) {
+    const params = new URLSearchParams({
+      from: String(from),
+      to: String(to),
+      offset: String(offset),
+      limit: String(limit),
+    });
+
+    return this.request(
+      `/api/stores/${encodeURIComponent(
+        sellerId,
+      )}/reports/profitability?${params.toString()}`,
+    );
+  },
+
+  async listCosts(sellerId) {
+    return this.request(`/api/stores/${encodeURIComponent(sellerId)}/costs`);
+  },
+
+  async saveCost(sellerId, itemId, data) {
+    return this.request(
+      `/api/stores/${encodeURIComponent(
+        sellerId,
+      )}/costs/${encodeURIComponent(itemId)}`,
+      {
+        method: "PUT",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
+  async getFiscal(sellerId) {
+    return this.request(`/api/stores/${encodeURIComponent(sellerId)}/fiscal`);
+  },
+
+  async saveFiscal(sellerId, data) {
+    return this.request(`/api/stores/${encodeURIComponent(sellerId)}/fiscal`, {
+      method: "PUT",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 /* =========================================================
@@ -362,6 +420,7 @@ function initStorePicker() {
     "#itemStoreSwitcher",
     "#reportStoreSwitcher",
     "#catalogStoreSwitcher",
+    "#profitStoreSwitcher",
   ].forEach((selector) => {
     const button = $(selector);
 
@@ -2281,6 +2340,1075 @@ function renderReportMonthly() {
 }
 
 /* =========================================================
+   RENTABILIDADE
+========================================================= */
+
+const profitState = {
+  loading: false,
+
+  from: "",
+
+  to: "",
+
+  /*
+   * item_id -> agregados brutos (reais) somados
+   * de todas as páginas do relatório.
+   */
+  raw: new Map(),
+
+  /*
+   * item_id -> { product_cost, packaging_cost,
+   * other_costs, shipping_cost, ads_cost }
+   */
+  costConfigs: {},
+
+  /*
+   * Configuração fiscal da loja (ou null se
+   * ainda não configurada).
+   */
+  fiscal: null,
+};
+
+/*
+ * =======================================================
+ * ALÍQUOTA DE IMPOSTOS
+ * =======================================================
+ *
+ * Retorna null quando não há configuração fiscal —
+ * impostos nunca viram 0% sozinhos.
+ */
+function computeTaxRate(fiscal) {
+  if (!fiscal) {
+    return null;
+  }
+
+  if (fiscal.regime === "simples_nacional") {
+    return Number.isFinite(fiscal.simples_percent)
+      ? fiscal.simples_percent
+      : null;
+  }
+
+  const rates = [
+    fiscal.icms_percent,
+    fiscal.icms_st_percent,
+    fiscal.pis_percent,
+    fiscal.cofins_percent,
+    fiscal.ipi_percent,
+  ].filter((rate) => Number.isFinite(rate));
+
+  if (!rates.length) {
+    return null;
+  }
+
+  return rates.reduce((sum, rate) => sum + rate, 0);
+}
+
+/*
+ * =======================================================
+ * CÁLCULO DE LUCRO/MARGEM POR ANÚNCIO
+ * =======================================================
+ *
+ * Regra: custo do produto e configuração fiscal
+ * são OBRIGATÓRIOS para calcular lucro/margem.
+ * Sem eles, profit/margin ficam null (N/D) — nunca
+ * tratamos como zero.
+ *
+ * Embalagem, outros custos, frete e publicidade
+ * são opcionais: quando não informados entram como
+ * 0 no cálculo, mas ficam listados em
+ * "optional_missing" para a tela avisar o usuário.
+ */
+function computeItemProfitability(agg, costConfig, fiscal) {
+  const missing = [];
+
+  const hasProductCost = costConfig && Number.isFinite(costConfig.product_cost);
+
+  const taxRate = computeTaxRate(fiscal);
+
+  if (!hasProductCost) {
+    missing.push("custo do produto");
+  }
+
+  if (taxRate === null) {
+    missing.push("configuração fiscal");
+  }
+
+  const packagingUnit =
+    costConfig && Number.isFinite(costConfig.packaging_cost)
+      ? costConfig.packaging_cost
+      : null;
+
+  const otherUnit =
+    costConfig && Number.isFinite(costConfig.other_costs)
+      ? costConfig.other_costs
+      : null;
+
+  const shippingPerOrder =
+    costConfig && Number.isFinite(costConfig.shipping_cost)
+      ? costConfig.shipping_cost
+      : null;
+
+  const adsTotal =
+    costConfig && Number.isFinite(costConfig.ads_cost)
+      ? costConfig.ads_cost
+      : null;
+
+  const packaging = (packagingUnit || 0) * agg.quantity;
+
+  const otherCosts = (otherUnit || 0) * agg.quantity;
+
+  const shipping = (shippingPerOrder || 0) * agg.orders;
+
+  const ads = adsTotal || 0;
+
+  const optionalMissing = [
+    packagingUnit === null ? "embalagem" : null,
+    otherUnit === null ? "outros custos" : null,
+    shippingPerOrder === null ? "frete" : null,
+    adsTotal === null ? "publicidade" : null,
+  ].filter(Boolean);
+
+  const productCostTotal = hasProductCost
+    ? costConfig.product_cost * agg.quantity
+    : null;
+
+  const taxes = taxRate !== null ? (agg.net_revenue * taxRate) / 100 : null;
+
+  let profit = null;
+
+  let margin = null;
+
+  if (hasProductCost && taxRate !== null) {
+    profit =
+      agg.net_revenue -
+      agg.ml_fee -
+      taxes -
+      shipping -
+      ads -
+      productCostTotal -
+      packaging -
+      otherCosts;
+
+    margin = agg.net_revenue > 0 ? (profit / agg.net_revenue) * 100 : null;
+  }
+
+  const targetMargin =
+    fiscal && Number.isFinite(fiscal.target_margin) ? fiscal.target_margin : 15;
+
+  let classification = "sem_dados";
+
+  if (profit !== null && margin !== null) {
+    if (margin < 0) {
+      classification = "prejuizo";
+    } else if (margin < targetMargin) {
+      classification = "atencao";
+    } else {
+      classification = "excelente";
+    }
+  }
+
+  return {
+    taxes,
+
+    shipping: shippingPerOrder !== null ? shipping : null,
+
+    ads: adsTotal !== null ? ads : null,
+
+    packaging: packagingUnit !== null ? packaging : null,
+
+    other_costs: otherUnit !== null ? otherCosts : null,
+
+    product_cost: productCostTotal,
+
+    profit,
+
+    margin,
+
+    classification,
+
+    missing,
+
+    optional_missing: optionalMissing,
+  };
+}
+
+/* =========================================================
+   ABRIR TELA DE RENTABILIDADE
+========================================================= */
+
+async function openProfitability() {
+  if (!state.store) {
+    toast("Nenhuma loja selecionada.");
+
+    return;
+  }
+
+  const store = state.store;
+
+  const setStoreBadge = (nameId, sellerId, logoId) => {
+    const nameEl = $(nameId);
+
+    const logoEl = $(logoId);
+
+    if (nameEl) {
+      nameEl.textContent = store.name || "Loja";
+    }
+
+    if (logoEl) {
+      logoEl.innerHTML = store.logo_url
+        ? `<img src="${esc(store.logo_url)}" alt="">`
+        : "ML";
+    }
+  };
+
+  setStoreBadge("#profitStoreName", store.seller_id, "#profitLogo");
+
+  setStoreBadge("#profitSideStoreName", store.seller_id, "#profitSideAvatar");
+
+  const seller = $("#profitSeller");
+
+  if (seller) {
+    seller.textContent = `Seller ID: ${store.seller_id}`;
+  }
+
+  const today = new Date();
+
+  const todayValue = today.toISOString().slice(0, 10);
+
+  const from = $("#profitFrom");
+
+  const to = $("#profitTo");
+
+  if (from && !from.value) {
+    from.value = todayValue;
+  }
+
+  if (to && !to.value) {
+    to.value = todayValue;
+  }
+
+  screen("#profitability");
+
+  try {
+    const [costsResponse, fiscalResponse] = await Promise.all([
+      API.listCosts(store.seller_id),
+
+      API.getFiscal(store.seller_id),
+    ]);
+
+    profitState.costConfigs = costsResponse.costs || {};
+
+    profitState.fiscal = fiscalResponse.fiscal || null;
+
+    if (profitState.raw.size) {
+      renderProfitability();
+    }
+  } catch (error) {
+    toast(error?.message || "Erro ao carregar configurações de rentabilidade.");
+  }
+}
+
+function closeProfitability(destination = "dashboard") {
+  if (destination === "catalog") {
+    openCatalog();
+
+    return;
+  }
+
+  if (destination === "reports") {
+    openReports();
+
+    return;
+  }
+
+  screen("#items");
+}
+
+/* =========================================================
+   CARREGAR RELATÓRIO DE RENTABILIDADE
+========================================================= */
+
+async function loadProfitability() {
+  if (profitState.loading) {
+    return;
+  }
+
+  if (!state.store) {
+    toast("Nenhuma loja selecionada.");
+
+    return;
+  }
+
+  const from = $("#profitFrom")?.value;
+
+  const to = $("#profitTo")?.value;
+
+  if (!from || !to) {
+    toast("Informe a data inicial e final.");
+
+    return;
+  }
+
+  if (from > to) {
+    toast("A data inicial não pode ser maior que a data final.");
+
+    return;
+  }
+
+  profitState.loading = true;
+
+  profitState.from = from;
+
+  profitState.to = to;
+
+  profitState.raw = new Map();
+
+  setProfitLoading(true);
+
+  try {
+    let offset = 0;
+
+    const limit = 50;
+
+    let total = 0;
+
+    let processed = 0;
+
+    while (true) {
+      const report = await API.profitabilityReport(
+        state.store.seller_id,
+        from,
+        to,
+        offset,
+        limit,
+      );
+
+      mergeProfitPage(report);
+
+      const paging = report.paging || {};
+
+      total = Number(paging.total || total || 0);
+
+      processed += Number(paging.returned || 0);
+
+      updateProfitProgress(processed, total);
+
+      if (!paging.has_more) {
+        break;
+      }
+
+      const nextOffset = Number(paging.next_offset);
+
+      if (!Number.isFinite(nextOffset) || nextOffset <= offset) {
+        break;
+      }
+
+      offset = nextOffset;
+    }
+
+    renderProfitability();
+
+    toast("Análise de rentabilidade atualizada.");
+  } catch (error) {
+    console.error("Erro na rentabilidade:", error);
+
+    toast(error?.message || "Erro ao carregar rentabilidade.");
+  } finally {
+    profitState.loading = false;
+
+    setProfitLoading(false);
+  }
+}
+
+function mergeProfitPage(report) {
+  if (!report || !Array.isArray(report.products)) {
+    return;
+  }
+
+  for (const product of report.products) {
+    const id = String(product.item_id || "");
+
+    if (!id) {
+      continue;
+    }
+
+    const current = profitState.raw.get(id);
+
+    if (!current) {
+      profitState.raw.set(id, {
+        item_id: id,
+
+        title: product.title || "",
+
+        permalink: product.permalink || "",
+
+        thumbnail: product.thumbnail || "",
+
+        quantity: Number(product.quantity || 0),
+
+        orders: Number(product.orders || 0),
+
+        net_revenue: Number(product.net_revenue || 0),
+
+        gross_revenue: Number(product.gross_revenue || 0),
+
+        discount: Number(product.discount || 0),
+
+        ml_fee: Number(product.ml_fee || 0),
+      });
+
+      continue;
+    }
+
+    current.quantity += Number(product.quantity || 0);
+
+    current.orders += Number(product.orders || 0);
+
+    current.net_revenue += Number(product.net_revenue || 0);
+
+    current.gross_revenue += Number(product.gross_revenue || 0);
+
+    current.discount += Number(product.discount || 0);
+
+    current.ml_fee += Number(product.ml_fee || 0);
+
+    if (!current.title && product.title) {
+      current.title = product.title;
+    }
+
+    if (!current.thumbnail && product.thumbnail) {
+      current.thumbnail = product.thumbnail;
+    }
+
+    if (!current.permalink && product.permalink) {
+      current.permalink = product.permalink;
+    }
+  }
+}
+
+function setProfitLoading(loading) {
+  const loadingElement = $("#profitLoading");
+
+  const progress = $("#profitProgress");
+
+  if (loadingElement) {
+    loadingElement.style.display = loading ? "flex" : "none";
+  }
+
+  if (progress) {
+    progress.style.display = loading ? "block" : "none";
+  }
+}
+
+function updateProfitProgress(processed, total) {
+  let percentage = 0;
+
+  if (total > 0) {
+    percentage = Math.min(100, Math.round((processed / total) * 100));
+  }
+
+  const count = $("#profitProgressCount");
+
+  const bar = $("#profitProgressBar");
+
+  const text = $("#profitLoadingText");
+
+  if (count) {
+    count.textContent = `${percentage}%`;
+  }
+
+  if (bar) {
+    bar.style.width = `${percentage}%`;
+  }
+
+  if (text) {
+    text.textContent = `${num(processed)} de ${num(total)} pedidos analisados.`;
+  }
+}
+
+/* =========================================================
+   RENDER — RENTABILIDADE
+========================================================= */
+
+function profitClassificationLabel(classification) {
+  return (
+    {
+      excelente: "🟢 Excelente",
+
+      atencao: "🟡 Atenção",
+
+      prejuizo: "🔴 Prejuízo",
+
+      sem_dados: "⚪ Sem dados",
+    }[classification] || "⚪ Sem dados"
+  );
+}
+
+function ndCell(value, formatter, missingReasons) {
+  if (value === null || value === undefined) {
+    const reason = (missingReasons || []).join(", ") || "dado não configurado";
+
+    return `<span class="profit-nd" title="N/D — ${esc(reason)}">N/D</span>`;
+  }
+
+  return formatter(value);
+}
+
+function computeAllProfitability() {
+  const items = [...profitState.raw.values()].map((agg) => {
+    const costConfig = profitState.costConfigs[agg.item_id] || null;
+
+    const financials = computeItemProfitability(
+      agg,
+      costConfig,
+      profitState.fiscal,
+    );
+
+    return {
+      ...agg,
+
+      ...financials,
+
+      has_cost_config: Boolean(costConfig),
+    };
+  });
+
+  items.sort((a, b) => b.net_revenue - a.net_revenue);
+
+  return items;
+}
+
+function renderProfitability() {
+  const items = computeAllProfitability();
+
+  renderProfitSummary(items);
+
+  renderProfitTable(items);
+
+  const label = $("#profitPeriodLabel");
+
+  if (label) {
+    label.textContent = `${reportDateLabel(profitState.from)} → ${reportDateLabel(
+      profitState.to,
+    )}`;
+  }
+}
+
+function renderProfitSummary(items) {
+  const container = $("#profitSummaryCards");
+
+  if (!container) {
+    return;
+  }
+
+  const totals = items.reduce(
+    (acc, item) => {
+      acc.gross_revenue += item.gross_revenue;
+
+      acc.net_revenue += item.net_revenue;
+
+      acc.discount += item.discount;
+
+      acc.ml_fee += item.ml_fee;
+
+      if (item.taxes !== null) {
+        acc.taxes += item.taxes;
+      } else {
+        acc.taxes_missing = true;
+      }
+
+      if (item.shipping !== null) {
+        acc.shipping += item.shipping;
+      }
+
+      if (item.ads !== null) {
+        acc.ads += item.ads;
+      }
+
+      if (item.product_cost !== null) {
+        acc.product_cost += item.product_cost;
+      } else {
+        acc.cost_missing = true;
+      }
+
+      if (item.profit !== null) {
+        acc.profit += item.profit;
+
+        acc.items_with_profit += 1;
+      }
+
+      return acc;
+    },
+    {
+      gross_revenue: 0,
+
+      net_revenue: 0,
+
+      discount: 0,
+
+      ml_fee: 0,
+
+      taxes: 0,
+
+      taxes_missing: false,
+
+      shipping: 0,
+
+      ads: 0,
+
+      product_cost: 0,
+
+      cost_missing: false,
+
+      profit: 0,
+
+      items_with_profit: 0,
+    },
+  );
+
+  const hasFullProfit =
+    items.length > 0 && totals.items_with_profit === items.length;
+
+  const margin =
+    hasFullProfit && totals.net_revenue > 0
+      ? (totals.profit / totals.net_revenue) * 100
+      : null;
+
+  const cards = [
+    ["FATURAMENTO BRUTO", money(totals.gross_revenue), null],
+
+    ["RECEITA LÍQUIDA", money(totals.net_revenue), null],
+
+    ["TARIFAS MERCADO LIVRE", money(totals.ml_fee), null],
+
+    ["DESCONTOS", money(totals.discount), null],
+
+    ["FRETE (INFORMADO)", money(totals.shipping), null],
+
+    ["PUBLICIDADE (INFORMADO)", money(totals.ads), null],
+
+    [
+      "IMPOSTOS",
+      totals.taxes_missing
+        ? ndCell(null, money, ["configuração fiscal"])
+        : money(totals.taxes),
+      null,
+    ],
+
+    [
+      "CUSTO DO PRODUTO",
+      totals.cost_missing
+        ? ndCell(null, money, ["custo do produto em 1 ou mais anúncios"])
+        : money(totals.product_cost),
+      null,
+    ],
+
+    [
+      "LUCRO LÍQUIDO",
+      hasFullProfit
+        ? money(totals.profit)
+        : ndCell(null, money, ["custo do produto ou configuração fiscal"]),
+      null,
+    ],
+
+    [
+      "MARGEM LÍQUIDA",
+      margin !== null
+        ? `${margin.toFixed(1)}%`
+        : ndCell(null, () => "", ["custo do produto ou configuração fiscal"]),
+      null,
+    ],
+  ];
+
+  container.innerHTML = cards
+    .map(
+      ([label, value]) => `
+        <div class="stat-card">
+          <small>${label}</small>
+          <strong>${value}</strong>
+        </div>
+      `,
+    )
+    .join("");
+}
+
+function renderProfitTable(items) {
+  const body = $("#profitTableBody");
+
+  if (!body) {
+    return;
+  }
+
+  if (!items.length) {
+    body.innerHTML = `
+      <tr>
+        <td class="catalog-table-empty" colspan="11">
+          Nenhuma venda encontrada no período. Gere a análise acima.
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+  body.innerHTML = items
+    .map((item) => {
+      const title = esc(item.title || item.item_id || "Produto");
+
+      const image = item.thumbnail
+        ? `<img src="${esc(item.thumbnail)}" alt="" loading="lazy">`
+        : "<span>ML</span>";
+
+      return `
+        <tr>
+          <td>
+            <div class="catalog-product">
+              <div class="catalog-product-image">${image}</div>
+              <div class="catalog-product-copy">
+                <strong>${title}</strong>
+                <span>${esc(item.item_id)}</span>
+              </div>
+            </div>
+          </td>
+          <td>${num(item.quantity)}</td>
+          <td class="catalog-price">${money(item.net_revenue)}</td>
+          <td class="catalog-price">${money(item.ml_fee)}</td>
+          <td class="catalog-price">${ndCell(item.shipping, money, ["frete"])}</td>
+          <td class="catalog-price">${ndCell(item.ads, money, ["publicidade"])}</td>
+          <td class="catalog-price">${ndCell(item.taxes, money, ["configuração fiscal"])}</td>
+          <td class="catalog-price">${ndCell(item.product_cost, money, ["custo do produto"])}</td>
+          <td class="catalog-price">${ndCell(item.profit, money, item.missing)}</td>
+          <td>${item.margin !== null ? `${item.margin.toFixed(1)}%` : ndCell(null, () => "", item.missing)}</td>
+          <td><span class="profit-badge ${item.classification}">${profitClassificationLabel(item.classification)}</span></td>
+          <td class="catalog-action">
+            <button type="button" class="profit-config-btn" data-config-item="${esc(item.item_id)}">
+              Configurar custos
+            </button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  body.querySelectorAll("[data-config-item]").forEach((button) => {
+    button.onclick = () => openCostModal(button.dataset.configItem);
+  });
+}
+
+/* =========================================================
+   MODAL — CUSTOS DO ANÚNCIO
+========================================================= */
+
+function openCostModal(itemId) {
+  const modal = $("#costModal");
+
+  if (!modal) {
+    return;
+  }
+
+  const item = profitState.raw.get(itemId);
+
+  const config = profitState.costConfigs[itemId] || {};
+
+  const titleEl = $("#costModalTitle");
+
+  if (titleEl) {
+    titleEl.textContent = item?.title || itemId;
+  }
+
+  modal.dataset.itemId = itemId;
+
+  const fields = {
+    "#costProductCost": config.product_cost,
+
+    "#costPackaging": config.packaging_cost,
+
+    "#costOther": config.other_costs,
+
+    "#costShipping": config.shipping_cost,
+
+    "#costAds": config.ads_cost,
+  };
+
+  Object.entries(fields).forEach(([selector, value]) => {
+    const input = $(selector);
+
+    if (input) {
+      input.value = value === null || value === undefined ? "" : value;
+    }
+  });
+
+  modal.classList.add("open");
+
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeCostModal() {
+  const modal = $("#costModal");
+
+  if (modal) {
+    modal.classList.remove("open");
+
+    modal.setAttribute("aria-hidden", "true");
+  }
+}
+
+async function saveCostModal() {
+  const modal = $("#costModal");
+
+  const itemId = modal?.dataset.itemId;
+
+  if (!itemId || !state.store) {
+    return;
+  }
+
+  const readField = (selector) => {
+    const input = $(selector);
+
+    const value = input ? input.value.trim() : "";
+
+    return value === "" ? null : value;
+  };
+
+  const data = {
+    product_cost: readField("#costProductCost"),
+
+    packaging_cost: readField("#costPackaging"),
+
+    other_costs: readField("#costOther"),
+
+    shipping_cost: readField("#costShipping"),
+
+    ads_cost: readField("#costAds"),
+  };
+
+  try {
+    const response = await API.saveCost(state.store.seller_id, itemId, data);
+
+    profitState.costConfigs[itemId] = response.config;
+
+    closeCostModal();
+
+    renderProfitability();
+
+    toast("Custos do anúncio salvos.");
+  } catch (error) {
+    toast(error?.message || "Erro ao salvar custos.");
+  }
+}
+
+/* =========================================================
+   MODAL — CONFIGURAÇÃO FISCAL
+========================================================= */
+
+function updateFiscalRegimeFields() {
+  const regime = $("#fiscalRegime")?.value || "outros";
+
+  const simplesGroup = $("#fiscalSimplesGroup");
+
+  const outrosGroup = $("#fiscalOutrosGroup");
+
+  if (simplesGroup) {
+    simplesGroup.style.display =
+      regime === "simples_nacional" ? "grid" : "none";
+  }
+
+  if (outrosGroup) {
+    outrosGroup.style.display = regime === "simples_nacional" ? "none" : "grid";
+  }
+}
+
+function openFiscalModal() {
+  if (!state.store) {
+    toast("Nenhuma loja selecionada.");
+
+    return;
+  }
+
+  const modal = $("#fiscalModal");
+
+  if (!modal) {
+    return;
+  }
+
+  const fiscal = profitState.fiscal || {};
+
+  const setValue = (selector, value) => {
+    const input = $(selector);
+
+    if (input) {
+      input.value = value === null || value === undefined ? "" : value;
+    }
+  };
+
+  const regimeInput = $("#fiscalRegime");
+
+  if (regimeInput) {
+    regimeInput.value =
+      fiscal.regime === "simples_nacional" ? "simples_nacional" : "outros";
+  }
+
+  setValue("#fiscalSimplesPercent", fiscal.simples_percent);
+
+  setValue("#fiscalIcms", fiscal.icms_percent);
+
+  setValue("#fiscalIcmsSt", fiscal.icms_st_percent);
+
+  setValue("#fiscalPis", fiscal.pis_percent);
+
+  setValue("#fiscalCofins", fiscal.cofins_percent);
+
+  setValue("#fiscalIpi", fiscal.ipi_percent);
+
+  setValue("#fiscalTargetMargin", fiscal.target_margin);
+
+  updateFiscalRegimeFields();
+
+  modal.classList.add("open");
+
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeFiscalModal() {
+  const modal = $("#fiscalModal");
+
+  if (modal) {
+    modal.classList.remove("open");
+
+    modal.setAttribute("aria-hidden", "true");
+  }
+}
+
+async function saveFiscalModal() {
+  if (!state.store) {
+    return;
+  }
+
+  const readField = (selector) => {
+    const input = $(selector);
+
+    const value = input ? input.value.trim() : "";
+
+    return value === "" ? null : value;
+  };
+
+  const data = {
+    regime:
+      $("#fiscalRegime")?.value === "simples_nacional"
+        ? "simples_nacional"
+        : "outros",
+
+    simples_percent: readField("#fiscalSimplesPercent"),
+
+    icms_percent: readField("#fiscalIcms"),
+
+    icms_st_percent: readField("#fiscalIcmsSt"),
+
+    pis_percent: readField("#fiscalPis"),
+
+    cofins_percent: readField("#fiscalCofins"),
+
+    ipi_percent: readField("#fiscalIpi"),
+
+    target_margin: readField("#fiscalTargetMargin"),
+  };
+
+  try {
+    const response = await API.saveFiscal(state.store.seller_id, data);
+
+    profitState.fiscal = response.fiscal;
+
+    closeFiscalModal();
+
+    renderProfitability();
+
+    toast("Configuração fiscal salva.");
+  } catch (error) {
+    toast(error?.message || "Erro ao salvar configuração fiscal.");
+  }
+}
+
+/* =========================================================
+   EVENTOS DA RENTABILIDADE
+========================================================= */
+
+function initProfitability() {
+  const itemOpen = $("#itemProfitability");
+
+  const catalogOpen = $("#catalogProfitability");
+
+  const reportOpen = $("#reportProfitability");
+
+  const generateButton = $("#generateProfitability");
+
+  const profitDashboard = $("#profitDashboard");
+
+  const profitReports = $("#profitReports");
+
+  const profitCatalog = $("#profitCatalog");
+
+  const profitMobileBack = $("#profitMobileBack");
+
+  const openFiscalButton = $("#openFiscalConfig");
+
+  [itemOpen, catalogOpen, reportOpen].forEach((button) => {
+    if (button) {
+      button.onclick = openProfitability;
+    }
+  });
+
+  if (generateButton) {
+    generateButton.onclick = loadProfitability;
+  }
+
+  if (profitDashboard) {
+    profitDashboard.onclick = () => closeProfitability("dashboard");
+  }
+
+  if (profitReports) {
+    profitReports.onclick = () => closeProfitability("reports");
+  }
+
+  if (profitCatalog) {
+    profitCatalog.onclick = () => closeProfitability("catalog");
+  }
+
+  if (profitMobileBack) {
+    profitMobileBack.onclick = () => closeProfitability("dashboard");
+  }
+
+  if (openFiscalButton) {
+    openFiscalButton.onclick = openFiscalModal;
+  }
+
+  document.querySelectorAll("[data-close-cost-modal]").forEach((button) => {
+    button.onclick = closeCostModal;
+  });
+
+  document.querySelectorAll("[data-close-fiscal-modal]").forEach((button) => {
+    button.onclick = closeFiscalModal;
+  });
+
+  const costSave = $("#costModalSave");
+
+  if (costSave) {
+    costSave.onclick = saveCostModal;
+  }
+
+  const fiscalSave = $("#fiscalModalSave");
+
+  if (fiscalSave) {
+    fiscalSave.onclick = saveFiscalModal;
+  }
+
+  const fiscalRegime = $("#fiscalRegime");
+
+  if (fiscalRegime) {
+    fiscalRegime.onchange = updateFiscalRegimeFields;
+  }
+}
+
+/* =========================================================
    EVENTOS DOS RELATÓRIOS
 ========================================================= */
 
@@ -2467,6 +3595,8 @@ function initLogin() {
 
   const catalogLogout = $("#catalogLogout");
 
+  const profitLogout = $("#profitLogout");
+
   const logoutUser = () => {
     sessionStorage.removeItem("ml_ok");
 
@@ -2493,6 +3623,10 @@ function initLogin() {
 
   if (catalogLogout) {
     catalogLogout.onclick = logoutUser;
+  }
+
+  if (profitLogout) {
+    profitLogout.onclick = logoutUser;
   }
 }
 
@@ -2532,6 +3666,8 @@ async function initApp() {
   initLogin();
 
   initReports();
+
+  initProfitability();
 
   initItemsNavigation();
 

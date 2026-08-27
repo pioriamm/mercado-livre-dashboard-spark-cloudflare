@@ -152,7 +152,8 @@
             <span class="report-nav-label">GERENCIAR</span>
             <button id="itemsCatalog" class="report-nav-link" type="button"><span class="nav-symbol">□</span>
               Anúncios</button>
-            <button class="report-nav-link" type="button" disabled><span class="nav-symbol">◉</span> Financeiro</button>
+            <button id="itemProfitability" class="report-nav-link" type="button"><span class="nav-symbol">◉</span>
+              Rentabilidade</button>
           </nav>
         </div>
 
@@ -356,7 +357,8 @@
             <span class="report-nav-label">GERENCIAR</span>
             <button class="report-nav-link active" type="button" aria-current="page"><span class="nav-symbol">□</span>
               Anúncios</button>
-            <button class="report-nav-link" type="button" disabled><span class="nav-symbol">◉</span> Financeiro</button>
+            <button id="catalogProfitability" class="report-nav-link" type="button"><span class="nav-symbol">◉</span>
+              Rentabilidade</button>
           </nav>
         </div>
         <button id="catalogLogout" class="report-logout" type="button"><span>↪</span> Sair</button>
@@ -457,8 +459,8 @@
             <button id="reportCatalog" class="report-nav-link" type="button">
               <span class="nav-symbol">□</span> Anúncios
             </button>
-            <button class="report-nav-link" type="button" disabled>
-              <span class="nav-symbol">◉</span> Financeiro
+            <button id="reportProfitability" class="report-nav-link" type="button">
+              <span class="nav-symbol">◉</span> Rentabilidade
             </button>
           </nav>
         </div>
@@ -845,6 +847,312 @@
     </div>
 
   </section>
+
+
+  <!-- =========================================================
+     RENTABILIDADE
+========================================================= -->
+
+  <section id="profitability" class="screen">
+
+    <div class="report-shell">
+
+      <aside class="report-drawer" aria-label="Navegação principal">
+
+        <div class="report-drawer-top">
+
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard">
+            <span class="report-brand-mark">M</span>
+            <span>mercado livre</span>
+          </a>
+
+          <button id="profitStoreSwitcher" class="report-store-switcher report-store-button" type="button">
+            <div id="profitSideAvatar" class="report-side-avatar">ML</div>
+            <div>
+              <strong id="profitSideStoreName">Sua loja</strong>
+              <span>Trocar loja</span>
+            </div>
+            <b>⌄</b>
+          </button>
+
+          <nav class="report-nav">
+            <span class="report-nav-label">VISÃO GERAL</span>
+            <button id="profitDashboard" class="report-nav-link" type="button">
+              <span class="nav-symbol">⌂</span> Dashboard
+            </button>
+            <button id="profitReports" class="report-nav-link" type="button">
+              <span class="nav-symbol">▥</span> Relatórios
+            </button>
+
+            <span class="report-nav-label">GERENCIAR</span>
+            <button id="profitCatalog" class="report-nav-link" type="button">
+              <span class="nav-symbol">□</span> Anúncios
+            </button>
+            <button class="report-nav-link active" type="button" aria-current="page">
+              <span class="nav-symbol">◉</span> Rentabilidade
+            </button>
+          </nav>
+        </div>
+
+        <button id="profitLogout" class="report-logout" type="button">
+          <span>↪</span> Sair
+        </button>
+
+      </aside>
+
+      <main class="report-content">
+
+        <header class="report-mobile-bar">
+          <a class="report-brand" href="#" aria-label="Mercado Livre Dashboard">
+            <span class="report-brand-mark">M</span>
+            <span>mercado livre</span>
+          </a>
+          <button id="profitMobileBack" class="report-mobile-back" type="button">Dashboard</button>
+        </header>
+
+
+        <!-- =====================================================
+           CABEÇALHO
+      ====================================================== -->
+
+        <section class="report-page-heading">
+          <div>
+            <span class="eyebrow">RENTABILIDADE</span>
+            <h1>Análise de lucro e custos</h1>
+            <p>Entenda quanto realmente sobra da <strong id="profitStoreName">sua loja</strong>, anúncio por anúncio.
+            </p>
+          </div>
+          <div class="report-store-badge">
+            <div id="profitLogo" class="store-logo">ML</div>
+            <span id="profitSeller" class="muted"></span>
+          </div>
+        </section>
+
+
+        <!-- =====================================================
+           FILTRO DE PERÍODO
+      ====================================================== -->
+
+        <section class="report-filter-card">
+
+          <div class="report-filter-info">
+            <span class="eyebrow">PERÍODO</span>
+            <h2>Custos, tarifas e margem</h2>
+            <p>Escolha o período e gere a análise. Configure custo do produto e impostos para ver o lucro real.</p>
+          </div>
+
+          <div class="report-filters">
+            <label>
+              <span>Data inicial</span>
+              <input id="profitFrom" type="date">
+            </label>
+
+            <label>
+              <span>Data final</span>
+              <input id="profitTo" type="date">
+            </label>
+
+            <button id="openFiscalConfig" class="ghost profit-fiscal-btn" type="button">
+              ⚙ Configuração fiscal
+            </button>
+
+            <button id="generateProfitability" class="primary-button" type="button">
+              Gerar análise
+            </button>
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
+           CARREGAMENTO
+      ====================================================== -->
+
+        <div id="profitLoading" class="report-loading" style="display:none">
+          <div class="report-loading-spinner"></div>
+          <div>
+            <strong>Calculando rentabilidade...</strong>
+            <span id="profitLoadingText">Consultando pedidos do período.</span>
+          </div>
+        </div>
+
+        <section id="profitProgress" class="report-progress" style="display:none">
+          <div class="report-progress-header">
+            <span>Processando pedidos</span>
+            <strong id="profitProgressCount">0%</strong>
+          </div>
+          <div class="report-progress-track">
+            <div id="profitProgressBar" class="report-progress-fill" style="width:0%"></div>
+          </div>
+        </section>
+
+
+        <!-- =====================================================
+           RESUMO
+      ====================================================== -->
+
+        <section id="profitSummaryCards" class="summary-cards report-summary">
+          <div class="stat-card"><small>FATURAMENTO BRUTO</small><strong>—</strong></div>
+          <div class="stat-card"><small>RECEITA LÍQUIDA</small><strong>—</strong></div>
+          <div class="stat-card"><small>TARIFAS MERCADO LIVRE</small><strong>—</strong></div>
+          <div class="stat-card"><small>DESCONTOS</small><strong>—</strong></div>
+        </section>
+
+
+        <!-- =====================================================
+           TABELA DE RENTABILIDADE POR ANÚNCIO
+      ====================================================== -->
+
+        <section class="announcements">
+          <div class="catalog-heading">
+            <span class="eyebrow">POR ANÚNCIO</span>
+            <p id="profitPeriodLabel" class="muted"></p>
+          </div>
+
+          <div class="catalog-table-wrap">
+            <table class="catalog-table profit-table">
+              <thead>
+                <tr>
+                  <th scope="col">Anúncio</th>
+                  <th scope="col">Vendidos</th>
+                  <th scope="col">Faturamento</th>
+                  <th scope="col">Tarifa ML</th>
+                  <th scope="col">Frete</th>
+                  <th scope="col">Publicidade</th>
+                  <th scope="col">Impostos</th>
+                  <th scope="col">Custo produto</th>
+                  <th scope="col">Lucro</th>
+                  <th scope="col">Margem</th>
+                  <th scope="col">Status</th>
+                  <th scope="col"><span class="sr-only">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody id="profitTableBody">
+                <tr>
+                  <td class="catalog-table-empty" colspan="11">
+                    Escolha um período e clique em "Gerar análise".
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+
+  </section>
+
+
+  <!-- Modal: custos do anúncio -->
+  <div id="costModal" class="simple-modal" aria-hidden="true">
+    <div class="simple-modal-backdrop" data-close-cost-modal></div>
+    <section class="simple-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="costModalTitleLabel">
+      <div class="simple-modal-header">
+        <div>
+          <span class="eyebrow">CUSTOS DO ANÚNCIO</span>
+          <h2 id="costModalTitleLabel">Configurar custos</h2>
+          <p id="costModalTitle" class="muted"></p>
+        </div>
+        <button class="simple-modal-close" type="button" aria-label="Fechar" data-close-cost-modal>×</button>
+      </div>
+
+      <div class="simple-modal-grid">
+        <div class="simple-modal-field">
+          <label for="costProductCost">Custo do produto (R$/un)</label>
+          <input id="costProductCost" type="number" step="0.01" min="0" placeholder="Ex: 45,00">
+        </div>
+        <div class="simple-modal-field">
+          <label for="costPackaging">Embalagem (R$/un)</label>
+          <input id="costPackaging" type="number" step="0.01" min="0" placeholder="Opcional">
+        </div>
+        <div class="simple-modal-field">
+          <label for="costOther">Outros custos (R$/un)</label>
+          <input id="costOther" type="number" step="0.01" min="0" placeholder="Opcional">
+        </div>
+        <div class="simple-modal-field">
+          <label for="costShipping">Frete médio (R$/pedido)</label>
+          <input id="costShipping" type="number" step="0.01" min="0" placeholder="Opcional">
+        </div>
+      </div>
+
+      <div class="simple-modal-field">
+        <label for="costAds">Publicidade no período (R$ total)</label>
+        <input id="costAds" type="number" step="0.01" min="0" placeholder="Opcional — valor total gasto com Ads">
+        <small>Informe manualmente o valor investido em Mercado Ads para este anúncio no período analisado.</small>
+      </div>
+
+      <div class="simple-modal-footer">
+        <button class="ghost" type="button" data-close-cost-modal>Cancelar</button>
+        <button id="costModalSave" class="primary-button" type="button">Salvar custos</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal: configuração fiscal -->
+  <div id="fiscalModal" class="simple-modal" aria-hidden="true">
+    <div class="simple-modal-backdrop" data-close-fiscal-modal></div>
+    <section class="simple-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fiscalModalTitleLabel">
+      <div class="simple-modal-header">
+        <div>
+          <span class="eyebrow">CONFIGURAÇÃO FISCAL</span>
+          <h2 id="fiscalModalTitleLabel">Impostos e meta de margem</h2>
+          <p class="muted">Usado para calcular lucro e margem de todos os anúncios desta loja.</p>
+        </div>
+        <button class="simple-modal-close" type="button" aria-label="Fechar" data-close-fiscal-modal>×</button>
+      </div>
+
+      <div class="simple-modal-field">
+        <label for="fiscalRegime">Regime tributário</label>
+        <select id="fiscalRegime">
+          <option value="outros">ICMS / PIS / COFINS / IPI (padrão)</option>
+          <option value="simples_nacional">Simples Nacional</option>
+        </select>
+      </div>
+
+      <div id="fiscalSimplesGroup" class="simple-modal-grid" style="display:none">
+        <div class="simple-modal-field">
+          <label for="fiscalSimplesPercent">Alíquota Simples Nacional (%)</label>
+          <input id="fiscalSimplesPercent" type="number" step="0.01" min="0" placeholder="Ex: 6,5">
+        </div>
+      </div>
+
+      <div id="fiscalOutrosGroup" class="simple-modal-grid">
+        <div class="simple-modal-field">
+          <label for="fiscalIcms">ICMS (%)</label>
+          <input id="fiscalIcms" type="number" step="0.01" min="0" placeholder="Opcional">
+        </div>
+        <div class="simple-modal-field">
+          <label for="fiscalIcmsSt">ICMS-ST (%)</label>
+          <input id="fiscalIcmsSt" type="number" step="0.01" min="0" placeholder="Opcional">
+        </div>
+        <div class="simple-modal-field">
+          <label for="fiscalPis">PIS (%)</label>
+          <input id="fiscalPis" type="number" step="0.01" min="0" placeholder="Opcional">
+        </div>
+        <div class="simple-modal-field">
+          <label for="fiscalCofins">COFINS (%)</label>
+          <input id="fiscalCofins" type="number" step="0.01" min="0" placeholder="Opcional">
+        </div>
+        <div class="simple-modal-field">
+          <label for="fiscalIpi">IPI (%)</label>
+          <input id="fiscalIpi" type="number" step="0.01" min="0" placeholder="Opcional">
+        </div>
+      </div>
+
+      <div class="simple-modal-field">
+        <label for="fiscalTargetMargin">Meta de margem mínima (%)</label>
+        <input id="fiscalTargetMargin" type="number" step="0.01" min="0" placeholder="Padrão: 15">
+        <small>Abaixo desta margem, o anúncio aparece como "🟡 Atenção" mesmo tendo lucro.</small>
+      </div>
+
+      <div class="simple-modal-footer">
+        <button class="ghost" type="button" data-close-fiscal-modal>Cancelar</button>
+        <button id="fiscalModalSave" class="primary-button" type="button">Salvar configuração</button>
+      </div>
+    </section>
+  </div>
 
 
   <div id="storePicker" class="store-picker" aria-hidden="true">

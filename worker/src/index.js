@@ -1247,6 +1247,320 @@ async function getSalesReport(
   };
 }
 /* =========================================================
+   CUSTOS POR ANÚNCIO (RENTABILIDADE)
+========================================================= */
+
+function costConfigKey(sellerId, itemId) {
+  return `costs:${sellerId}:${itemId}`;
+}
+
+function fiscalConfigKey(sellerId) {
+  return `fiscal:${sellerId}`;
+}
+
+function toNumberOrNull(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const num = Number(value);
+
+  return Number.isFinite(num) ? num : null;
+}
+
+/*
+ * Só guardamos números ou null.
+ *
+ * null significa "não informado" — nunca
+ * tratamos isso como zero automaticamente.
+ */
+function sanitizeCostConfig(data) {
+  return {
+    product_cost: toNumberOrNull(data?.product_cost),
+
+    packaging_cost: toNumberOrNull(data?.packaging_cost),
+
+    other_costs: toNumberOrNull(data?.other_costs),
+
+    shipping_cost: toNumberOrNull(data?.shipping_cost),
+
+    ads_cost: toNumberOrNull(data?.ads_cost),
+
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function saveCostConfig(env, sellerId, itemId, data) {
+  const config = sanitizeCostConfig(data);
+
+  await env.ML_STORES.put(
+    costConfigKey(sellerId, itemId),
+    JSON.stringify(config),
+  );
+
+  return config;
+}
+
+async function listCostConfigs(env, sellerId) {
+  const prefix = costConfigKey(sellerId, "");
+
+  const configs = {};
+
+  let cursor;
+
+  do {
+    const result = await env.ML_STORES.list({
+      prefix,
+      cursor,
+    });
+
+    for (const key of result.keys) {
+      const itemId = key.name.slice(prefix.length);
+
+      const config = await env.ML_STORES.get(key.name, "json");
+
+      if (config) {
+        configs[itemId] = config;
+      }
+    }
+
+    cursor = result.list_complete ? undefined : result.cursor;
+  } while (cursor);
+
+  return configs;
+}
+
+/*
+ * =======================================================
+ * CONFIGURAÇÃO FISCAL DA LOJA
+ * =======================================================
+ *
+ * regime "simples_nacional": usa simples_percent.
+ *
+ * regime "outros": soma ICMS + ICMS-ST + PIS +
+ * COFINS + IPI (cada um opcional).
+ *
+ * target_margin: meta de margem mínima usada
+ * para classificar os anúncios (🟢🟡🔴).
+ */
+function sanitizeFiscalConfig(data) {
+  return {
+    regime: data?.regime === "simples_nacional" ? "simples_nacional" : "outros",
+
+    simples_percent: toNumberOrNull(data?.simples_percent),
+
+    icms_percent: toNumberOrNull(data?.icms_percent),
+
+    icms_st_percent: toNumberOrNull(data?.icms_st_percent),
+
+    pis_percent: toNumberOrNull(data?.pis_percent),
+
+    cofins_percent: toNumberOrNull(data?.cofins_percent),
+
+    ipi_percent: toNumberOrNull(data?.ipi_percent),
+
+    target_margin: toNumberOrNull(data?.target_margin),
+
+    updated_at: new Date().toISOString(),
+  };
+}
+
+async function saveFiscalConfig(env, sellerId, data) {
+  const config = sanitizeFiscalConfig(data);
+
+  await env.ML_STORES.put(fiscalConfigKey(sellerId), JSON.stringify(config));
+
+  return config;
+}
+
+async function getFiscalConfig(env, sellerId) {
+  return env.ML_STORES.get(fiscalConfigKey(sellerId), "json");
+}
+
+/* =========================================================
+   RELATÓRIO DE RENTABILIDADE
+========================================================= */
+
+/*
+ * IMPORTANTE:
+ *
+ * Este relatório NÃO calcula lucro/margem aqui.
+ *
+ * Ele só devolve dados brutos e reais do pedido:
+ *
+ * - quantidade vendida
+ * - número de pedidos
+ * - receita líquida (o que o comprador pagou)
+ * - receita bruta (preço de tabela, quando disponível)
+ * - desconto (diferença entre os dois)
+ * - tarifa do Mercado Livre (sale_fee do próprio pedido)
+ *
+ * O cálculo de lucro/margem — que depende de custo
+ * do produto e configuração fiscal — é feito no
+ * frontend, DEPOIS de somar todas as páginas.
+ *
+ * Isso evita contar custos fixos (como publicidade,
+ * que é um valor total por anúncio) mais de uma vez
+ * quando o período tem várias páginas de pedidos.
+ */
+async function getProfitabilityReport(
+  sellerId,
+  accessToken,
+  from,
+  to,
+  offset = 0,
+  limit = 50,
+) {
+  const { orders, total, paging } = await fetchReportOrders(
+    sellerId,
+    accessToken,
+    from,
+    to,
+    offset,
+    limit,
+  );
+
+  const productMap = new Map();
+
+  let paidOrders = 0;
+
+  for (const order of orders) {
+    if (!reportIsPaid(order)) {
+      continue;
+    }
+
+    paidOrders += 1;
+
+    for (const orderItem of order.order_items || []) {
+      const itemId = reportItemId(orderItem);
+
+      if (!itemId) {
+        continue;
+      }
+
+      const quantity = reportItemQuantity(orderItem);
+
+      const unitPrice = reportItemUnitPrice(orderItem);
+
+      const fullUnitPriceRaw = Number(orderItem?.full_unit_price);
+
+      const grossUnit = Number.isFinite(fullUnitPriceRaw)
+        ? Math.max(fullUnitPriceRaw, unitPrice)
+        : unitPrice;
+
+      const netRevenue = quantity * unitPrice;
+
+      const discount = Math.max(0, grossUnit - unitPrice) * quantity;
+
+      /*
+       * sale_fee já vem pronto no próprio
+       * order_item — é a tarifa cobrada pelo
+       * Mercado Livre para aquela linha do pedido.
+       */
+      const mlFee = Number(orderItem?.sale_fee || 0);
+
+      if (!productMap.has(itemId)) {
+        productMap.set(itemId, {
+          item_id: itemId,
+
+          title: reportItemTitle(orderItem),
+
+          quantity: 0,
+
+          orders: 0,
+
+          net_revenue: 0,
+
+          gross_revenue: 0,
+
+          discount: 0,
+
+          ml_fee: 0,
+
+          permalink: "",
+
+          thumbnail: "",
+        });
+      }
+
+      const agg = productMap.get(itemId);
+
+      agg.quantity += quantity;
+
+      agg.orders += 1;
+
+      agg.net_revenue += netRevenue;
+
+      agg.gross_revenue += grossUnit * quantity;
+
+      agg.discount += discount;
+
+      agg.ml_fee += mlFee;
+    }
+  }
+
+  const soldItemIds = Array.from(productMap.keys());
+
+  /*
+   * Assim como no relatório de vendas, buscamos
+   * detalhes (foto, permalink) somente dos anúncios
+   * que tiveram venda nesta página.
+   */
+  if (soldItemIds.length) {
+    const details = await fetchItemsByIds(soldItemIds, accessToken);
+
+    for (const detail of details) {
+      const id = String(detail.id || "").trim();
+
+      const agg = productMap.get(id);
+
+      if (!agg) {
+        continue;
+      }
+
+      agg.permalink = detail.permalink || "";
+
+      agg.thumbnail = detail.thumbnail || "";
+
+      if (detail.title) {
+        agg.title = detail.title;
+      }
+    }
+  }
+
+  const products = Array.from(productMap.values()).map((agg) => ({
+    ...agg,
+
+    net_revenue: Number(agg.net_revenue.toFixed(2)),
+
+    gross_revenue: Number(agg.gross_revenue.toFixed(2)),
+
+    discount: Number(agg.discount.toFixed(2)),
+
+    ml_fee: Number(agg.ml_fee.toFixed(2)),
+  }));
+
+  return {
+    seller_id: sellerId,
+
+    period: {
+      from: from.toISOString(),
+
+      to: to.toISOString(),
+    },
+
+    orders_found: orders.length,
+
+    orders_total: total,
+
+    paid_orders: paidOrders,
+
+    products,
+
+    paging,
+  };
+}
+/* =========================================================
    OAUTH START
 ========================================================= */
 
@@ -1734,6 +2048,169 @@ export default {
         );
 
         const report = await getSalesReport(
+          sellerId,
+          accessToken,
+          from,
+          to,
+          offset,
+          limit,
+        );
+
+        return out(report);
+      }
+
+      /* =====================================================
+         CUSTOS POR ANÚNCIO
+      ===================================================== */
+
+      const costsListMatch = url.pathname.match(
+        /^\/api\/stores\/([^/]+)\/costs$/,
+      );
+
+      if (costsListMatch && request.method === "GET") {
+        const sellerId = decodeURIComponent(costsListMatch[1]);
+
+        const costs = await listCostConfigs(env, sellerId);
+
+        return out({
+          costs,
+        });
+      }
+
+      const costItemMatch = url.pathname.match(
+        /^\/api\/stores\/([^/]+)\/costs\/([^/]+)$/,
+      );
+
+      if (costItemMatch && request.method === "PUT") {
+        const sellerId = decodeURIComponent(costItemMatch[1]);
+
+        const itemId = decodeURIComponent(costItemMatch[2]);
+
+        try {
+          const data = await request.json();
+
+          const config = await saveCostConfig(env, sellerId, itemId, data);
+
+          return out({
+            success: true,
+
+            item_id: itemId,
+
+            config,
+          });
+        } catch (error) {
+          return out(
+            {
+              error: error.message || "Erro ao salvar custo do anúncio.",
+            },
+            400,
+          );
+        }
+      }
+
+      /* =====================================================
+         CONFIGURAÇÃO FISCAL
+      ===================================================== */
+
+      const fiscalMatch = url.pathname.match(
+        /^\/api\/stores\/([^/]+)\/fiscal$/,
+      );
+
+      if (fiscalMatch && request.method === "GET") {
+        const sellerId = decodeURIComponent(fiscalMatch[1]);
+
+        const fiscal = await getFiscalConfig(env, sellerId);
+
+        return out({
+          fiscal: fiscal || null,
+        });
+      }
+
+      if (fiscalMatch && request.method === "PUT") {
+        const sellerId = decodeURIComponent(fiscalMatch[1]);
+
+        try {
+          const data = await request.json();
+
+          const fiscal = await saveFiscalConfig(env, sellerId, data);
+
+          return out({
+            success: true,
+
+            fiscal,
+          });
+        } catch (error) {
+          return out(
+            {
+              error: error.message || "Erro ao salvar configuração fiscal.",
+            },
+            400,
+          );
+        }
+      }
+
+      /* =====================================================
+         RELATÓRIO DE RENTABILIDADE
+      ===================================================== */
+
+      const profitabilityMatch = url.pathname.match(
+        /^\/api\/stores\/([^/]+)\/reports\/profitability$/,
+      );
+
+      if (profitabilityMatch && request.method === "GET") {
+        const sellerId = decodeURIComponent(profitabilityMatch[1]);
+
+        await getStore(env, sellerId);
+
+        const fromValue = url.searchParams.get("from");
+
+        const toValue = url.searchParams.get("to");
+
+        const from = reportDate(fromValue, false);
+
+        const to = reportDate(toValue, true);
+
+        if (!from || !to) {
+          return out(
+            {
+              error: "Informe from e to no formato YYYY-MM-DD.",
+            },
+            400,
+          );
+        }
+
+        if (from > to) {
+          return out(
+            {
+              error: "A data inicial não pode ser maior que a data final.",
+            },
+            400,
+          );
+        }
+
+        const maxFrom = new Date(to);
+
+        maxFrom.setUTCFullYear(maxFrom.getUTCFullYear() - 1);
+
+        if (from < maxFrom) {
+          return out(
+            {
+              error: "O período máximo do relatório é de 12 meses.",
+            },
+            400,
+          );
+        }
+
+        const accessToken = await getAccessToken(env, sellerId);
+
+        const offset = Math.max(0, Number(url.searchParams.get("offset") || 0));
+
+        const limit = Math.min(
+          50,
+          Math.max(1, Number(url.searchParams.get("limit") || 50)),
+        );
+
+        const report = await getProfitabilityReport(
           sellerId,
           accessToken,
           from,
